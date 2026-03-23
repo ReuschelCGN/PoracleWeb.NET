@@ -66,9 +66,12 @@ public class ProfileControllerTests : ControllerTestBase
     [Fact]
     public async Task SwitchProfileReturnsOkWhenBothExist()
     {
-        var profile = new Profile { Id = "123456789", ProfileNo = 2 };
-        var human = new Human { Id = "123456789", CurrentProfileNo = 1 };
+        var oldProfile = new Profile { Id = "123456789", ProfileNo = 1, Area = "[]" };
+        var profile = new Profile { Id = "123456789", ProfileNo = 2, Area = "[\"new area\"]" };
+        var human = new Human { Id = "123456789", CurrentProfileNo = 1, Area = "[\"old area\"]" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(oldProfile);
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(profile);
+        this._profileService.Setup(s => s.UpdateAsync(It.IsAny<Profile>())).ReturnsAsync((Profile p) => p);
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
         this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
@@ -81,9 +84,12 @@ public class ProfileControllerTests : ControllerTestBase
     [Fact]
     public async Task SwitchProfileSyncsLocationToHumans()
     {
-        var profile = new Profile { Id = "123456789", ProfileNo = 2, Latitude = 40.7128, Longitude = -74.006 };
-        var human = new Human { Id = "123456789", CurrentProfileNo = 1, Latitude = 0, Longitude = 0 };
+        var oldProfile = new Profile { Id = "123456789", ProfileNo = 1, Area = "[]" };
+        var profile = new Profile { Id = "123456789", ProfileNo = 2, Latitude = 40.7128, Longitude = -74.006, Area = "[]" };
+        var human = new Human { Id = "123456789", CurrentProfileNo = 1, Latitude = 0, Longitude = 0, Area = "[]" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(oldProfile);
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(profile);
+        this._profileService.Setup(s => s.UpdateAsync(It.IsAny<Profile>())).ReturnsAsync((Profile p) => p);
         this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
         this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
 
@@ -91,6 +97,26 @@ public class ProfileControllerTests : ControllerTestBase
 
         Assert.Equal(40.7128, human.Latitude);
         Assert.Equal(-74.006, human.Longitude);
+    }
+
+    [Fact]
+    public async Task SwitchProfileSwapsAreasBetweenHumansAndProfiles()
+    {
+        var oldProfile = new Profile { Id = "123456789", ProfileNo = 1, Area = "[]" };
+        var newProfile = new Profile { Id = "123456789", ProfileNo = 2, Area = "[\"profile2 area\"]" };
+        var human = new Human { Id = "123456789", CurrentProfileNo = 1, Area = "[\"profile1 area\"]" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(oldProfile);
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(newProfile);
+        this._profileService.Setup(s => s.UpdateAsync(It.IsAny<Profile>())).ReturnsAsync((Profile p) => p);
+        this._humanService.Setup(s => s.GetByIdAsync("123456789")).ReturnsAsync(human);
+        this._humanService.Setup(s => s.UpdateAsync(human)).ReturnsAsync(human);
+
+        await this._sut.SwitchProfile(2);
+
+        // Old profile should have saved humans.area
+        Assert.Equal("[\"profile1 area\"]", oldProfile.Area);
+        // humans.area should now have new profile's areas
+        Assert.Equal("[\"profile2 area\"]", human.Area);
     }
 
     [Fact]

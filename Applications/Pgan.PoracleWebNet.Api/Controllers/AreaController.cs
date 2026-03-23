@@ -5,38 +5,31 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/areas")]
-public partial class AreaController(IHumanService humanService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
+public partial class AreaController(IHumanService humanService, IProfileService profileService, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
+    private readonly IProfileService _profileService = profileService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly ILogger<AreaController> _logger = logger;
 
     [HttpGet]
     public async Task<IActionResult> GetSelectedAreas()
     {
-        var human = await this._humanService.GetByIdAsync(this.UserId);
-        if (human == null)
+        // Read from profiles.area for the current profile (profile-scoped)
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile == null)
         {
-            return this.NotFound();
+            // Fallback to humans.area if profile not found
+            var human = await this._humanService.GetByIdAsync(this.UserId);
+            if (human == null)
+            {
+                return this.NotFound();
+            }
+
+            return this.Ok(ParseAreaJson(human.Area));
         }
 
-        // Area is stored as a JSON array in the DB, e.g. ["west end", "downtown"]
-        var areas = Array.Empty<string>();
-        if (!string.IsNullOrWhiteSpace(human.Area))
-        {
-            try
-            {
-                areas = JsonSerializer.Deserialize<string[]>(human.Area) ?? [];
-            }
-            catch (Exception ex)
-            {
-                LogParseAreaJsonFailed(this._logger, ex, this.UserId);
-                // Fallback: treat as comma-separated
-                areas = human.Area.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            }
-        }
-
-        return this.Ok(areas);
+        return this.Ok(ParseAreaJson(profile.Area));
     }
 
     [HttpGet("available")]
@@ -72,12 +65,22 @@ public partial class AreaController(IHumanService humanService, IPoracleApiProxy
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
 
-        // Store as JSON array to match Poracle's format
-        human.Area = normalizedAreas.Length > 0
+        var areaJson = normalizedAreas.Length > 0
             ? JsonSerializer.Serialize(normalizedAreas)
             : "[]";
 
+        // Update humans.area (PoracleJS reads this for notifications)
+        human.Area = areaJson;
         await this._humanService.UpdateAsync(human);
+
+        // Also update profiles.area for the current profile (profile-scoped storage)
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (profile != null)
+        {
+            profile.Area = areaJson;
+            await this._profileService.UpdateAsync(profile);
+        }
+
         return this.Ok(normalizedAreas);
     }
 
@@ -134,8 +137,22 @@ public partial class AreaController(IHumanService humanService, IPoracleApiProxy
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to parse area JSON for user {UserId}, falling back to comma-separated")]
-    private static partial void LogParseAreaJsonFailed(ILogger logger, Exception ex, string userId);
+    private static string[] ParseAreaJson(string? areaJson)
+    {
+        if (string.IsNullOrWhiteSpace(areaJson))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<string[]>(areaJson) ?? [];
+        }
+        catch
+        {
+            return areaJson.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch available areas from Poracle API for user {UserId}")]
     private static partial void LogFetchAvailableAreasFailed(ILogger logger, Exception ex, string userId);

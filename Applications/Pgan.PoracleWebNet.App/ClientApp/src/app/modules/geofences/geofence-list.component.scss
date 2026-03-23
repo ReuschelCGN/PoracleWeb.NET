@@ -232,6 +232,21 @@
   white-space: nowrap;
 }
 
+// ─── Profile Toggle ──────────────────────────────────
+.geofence-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--divider, rgba(0, 0, 0, 0.06));
+}
+
+.geofence-toggle-label {
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+
 .geofence-card-footer {
   display: flex;
   align-items: center;

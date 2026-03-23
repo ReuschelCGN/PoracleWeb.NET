@@ -79,9 +79,19 @@ public class ProfileController(
             return this.NotFound();
         }
 
+        // Save current humans.area to the old profile's profiles.area
+        var oldProfile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        if (oldProfile != null)
+        {
+            oldProfile.Area = human.Area ?? "[]";
+            await this._profileService.UpdateAsync(oldProfile);
+        }
+
+        // Load new profile's areas into humans.area
         human.CurrentProfileNo = profileNo;
         human.Latitude = profile.Latitude;
         human.Longitude = profile.Longitude;
+        human.Area = profile.Area ?? "[]";
         await this._humanService.UpdateAsync(human);
 
         // Issue a new JWT with the updated profileNo so all subsequent API calls use it

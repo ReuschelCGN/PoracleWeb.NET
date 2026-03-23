@@ -191,6 +191,85 @@ public class UserGeofenceControllerTests : ControllerTestBase
         Assert.IsType<ForbidResult>(result);
     }
 
+    // --- ActivateGeofence ---
+
+    [Fact]
+    public async Task ActivateGeofenceReturnsNoContent()
+    {
+        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42)).Returns(Task.CompletedTask);
+
+        var result = await this._sut.ActivateGeofence(42);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task ActivateGeofenceReturnsNotFoundWhenNotExists()
+    {
+        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 99))
+            .ThrowsAsync(new InvalidOperationException("Geofence with ID 99 not found."));
+
+        var result = await this._sut.ActivateGeofence(99);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task ActivateGeofenceReturnsForbidWhenNotOwned()
+    {
+        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42))
+            .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
+
+        var result = await this._sut.ActivateGeofence(42);
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task ActivateGeofenceUsesUserIdAndProfileNoFromClaims()
+    {
+        SetupUser(this._sut, userId: "555", profileNo: 3);
+        this._service.Setup(s => s.AddToProfileAsync("555", 3, 10)).Returns(Task.CompletedTask);
+
+        await this._sut.ActivateGeofence(10);
+
+        this._service.Verify(s => s.AddToProfileAsync("555", 3, 10), Times.Once);
+    }
+
+    // --- DeactivateGeofence ---
+
+    [Fact]
+    public async Task DeactivateGeofenceReturnsNoContent()
+    {
+        this._service.Setup(s => s.RemoveFromProfileAsync("123456789", 1, 42)).Returns(Task.CompletedTask);
+
+        var result = await this._sut.DeactivateGeofence(42);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task DeactivateGeofenceReturnsNotFoundWhenNotExists()
+    {
+        this._service.Setup(s => s.RemoveFromProfileAsync("123456789", 1, 99))
+            .ThrowsAsync(new InvalidOperationException("Geofence with ID 99 not found."));
+
+        var result = await this._sut.DeactivateGeofence(99);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DeactivateGeofenceReturnsForbidWhenNotOwned()
+    {
+        this._service.Setup(s => s.RemoveFromProfileAsync("123456789", 1, 42))
+            .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
+
+        var result = await this._sut.DeactivateGeofence(42);
+
+        Assert.IsType<ForbidResult>(result);
+    }
+
     // --- GetRegions ---
 
     [Fact]
