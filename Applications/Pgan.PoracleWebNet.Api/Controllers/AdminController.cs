@@ -14,7 +14,7 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 [Route("api/admin")]
 public partial class AdminController(
     IHumanService humanService,
-    IPwebSettingService pwebSettingService,
+    IWebhookDelegateService webhookDelegateService,
     IPoracleApiProxy poracleApiProxy,
     IPoracleServerService poracleServerService,
     IOptions<PoracleSettings> poracleSettings,
@@ -22,7 +22,7 @@ public partial class AdminController(
     ILogger<AdminController> logger) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
-    private readonly IPwebSettingService _pwebSettingService = pwebSettingService;
+    private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly PoracleSettings _poracleSettings = poracleSettings.Value;
@@ -370,13 +370,7 @@ public partial class AdminController(
             return this.Forbid();
         }
 
-        const string prefix = "webhook_delegates:";
-        var allSettings = await this._pwebSettingService.GetAllAsync();
-        var result = allSettings
-            .Where(s => s.Setting?.StartsWith(prefix, StringComparison.Ordinal) == true)
-            .ToDictionary(
-                s => s.Setting![prefix.Length..],
-                s => s.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []);
+        var result = await this._webhookDelegateService.GetAllGroupedAsync();
         return this.Ok(result);
     }
 
@@ -388,8 +382,7 @@ public partial class AdminController(
             return this.Forbid();
         }
 
-        var setting = await this._pwebSettingService.GetByKeyAsync($"webhook_delegates:{webhookId}");
-        var delegates = setting?.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+        var delegates = await this._webhookDelegateService.GetDelegatesForWebhookAsync(webhookId);
         return this.Ok(delegates);
     }
 
@@ -401,17 +394,8 @@ public partial class AdminController(
             return this.Forbid();
         }
 
-        var key = $"webhook_delegates:{request.WebhookId}";
-        var setting = await this._pwebSettingService.GetByKeyAsync(key);
-        var delegates = (setting?.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []).ToList();
-
-        if (!delegates.Contains(request.UserId))
-        {
-            delegates.Add(request.UserId);
-            await this._pwebSettingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = string.Join(',', delegates) });
-        }
-
-        return this.Ok(delegates.ToArray());
+        var delegates = await this._webhookDelegateService.AddDelegateAsync(request.WebhookId, request.UserId);
+        return this.Ok(delegates);
     }
 
     [HttpDelete("webhook-delegates")]
@@ -422,22 +406,8 @@ public partial class AdminController(
             return this.Forbid();
         }
 
-        var key = $"webhook_delegates:{request.WebhookId}";
-        var setting = await this._pwebSettingService.GetByKeyAsync(key);
-        var delegates = (setting?.Value?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? []).ToList();
-
-        delegates.Remove(request.UserId);
-
-        if (delegates.Count == 0)
-        {
-            await this._pwebSettingService.DeleteAsync(key);
-        }
-        else
-        {
-            await this._pwebSettingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = string.Join(',', delegates) });
-        }
-
-        return this.Ok(delegates.ToArray());
+        var delegates = await this._webhookDelegateService.RemoveDelegateAsync(request.WebhookId, request.UserId);
+        return this.Ok(delegates);
     }
 
     public record WebhookDelegateRequest(string WebhookId, string UserId);

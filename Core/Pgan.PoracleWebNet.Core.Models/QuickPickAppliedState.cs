@@ -2,11 +2,30 @@ namespace Pgan.PoracleWebNet.Core.Models;
 
 /// <summary>
 /// Tracks which quick picks a user has applied, their exclusions, and the created alarm UIDs.
-/// Stored as JSON in pweb_settings with key pattern: qp_applied:{userId}:{profileNo}:{quickPickId}
 /// </summary>
 public class QuickPickAppliedState
 {
+    /// <summary>
+    /// The Discord/Telegram user ID that applied this quick pick.
+    /// </summary>
+    public string UserId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The profile number this quick pick was applied to.
+    /// </summary>
+    public int ProfileNo
+    {
+        get; set;
+    }
+
     public string QuickPickId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The alarm type (monster, raid, egg, quest, invasion, lure, nest, gym) stored at apply time
+    /// so removal works correctly even if the definition is later deleted.
+    /// </summary>
+    public string AlarmType { get; set; } = "monster";
+
     public DateTime AppliedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>

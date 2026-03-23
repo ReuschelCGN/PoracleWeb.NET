@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Migrate pweb_settings to structured tables**: Replace the generic key-value `pweb_settings` table in the Poracle DB with 4 properly structured tables in the PoracleWeb database ([#34](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/34), [PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
+  - `site_settings` — typed admin settings with categories and value types
+  - `webhook_delegates` — relational webhook-to-user delegation with composite unique index
+  - `quick_pick_definitions` — structured quick pick presets with JSON filter columns
+  - `quick_pick_applied_states` — per-user/profile applied state tracking
+  - Automatic one-time data migration on first startup via `SettingsMigrationStartupService`
+  - Controllers use `ISiteSettingService` + `IWebhookDelegateService` instead of generic `IPwebSettingService`
+  - `QuickPickService` refactored to use dedicated repositories instead of loading all settings and filtering by key prefix
+  - Significant query performance improvement: full table scans replaced with indexed lookups
+- **EF Core migrations for PoracleWeb database**: Replace `EnsureCreated()` with proper EF Core migrations. Schema changes apply automatically on startup via `MigrateAsync()`. Includes `MariaDbHistoryRepository` to fix `GET_LOCK(-1)` incompatibility with MariaDB. ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
+
+### Deprecated
+- **`pweb_settings` table** — The old key-value table in the Poracle DB is no longer written to. Data is automatically migrated to the new structured tables on first startup. The old `IPwebSettingService` and `PwebSettingEntity` remain registered for the migration service but should not be used for new code.
 
 ### Fixed
 - remove hardcoded branding, rename namespaces to Pgan.PoracleWebNet ([PR #32](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/32))

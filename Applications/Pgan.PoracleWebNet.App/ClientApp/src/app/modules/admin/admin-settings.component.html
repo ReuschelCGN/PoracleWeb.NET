@@ -115,14 +115,14 @@
           <span class="section-label">Other</span>
         </div>
         <div class="section-rows">
-          @for (s of unknownSettings(); track s.setting; let rowLast = $last) {
-            <div class="setting-row" [class.modified]="modifiedSettings().has(s.setting)">
+          @for (s of unknownSettings(); track itemKey(s); let rowLast = $last) {
+            <div class="setting-row" [class.modified]="modifiedSettings().has(itemKey(s))">
               <div class="setting-info">
-                <span class="setting-label">{{ s.setting }}</span>
+                <span class="setting-label">{{ itemKey(s) }}</span>
               </div>
               <div class="setting-control">
                 <mat-form-field appearance="outline" class="setting-field">
-                  <input matInput [ngModel]="s.value ?? ''" (ngModelChange)="onTextChange(s.setting, $event)" />
+                  <input matInput [ngModel]="s.value ?? ''" (ngModelChange)="onTextChange(itemKey(s), $event)" />
                 </mat-form-field>
               </div>
             </div>

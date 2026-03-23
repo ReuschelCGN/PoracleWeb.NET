@@ -44,6 +44,7 @@ builder.Services.AddPoracleServices(builder.Configuration);
 // Background services
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.AvatarCacheService>();
 builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.DtsCacheService>();
+builder.Services.AddHostedService<Pgan.PoracleWebNet.Api.Services.SettingsMigrationStartupService>();
 
 // JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;
@@ -149,6 +150,22 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Apply pending EF Core migrations for the PoracleWeb database
+using (var scope = app.Services.CreateScope())
+{
+    var webDb = scope.ServiceProvider.GetRequiredService<Pgan.PoracleWebNet.Data.PoracleWebContext>();
+    try
+    {
+        await webDb.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        var startupLogger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Startup");
+        StartupLog.LogPoracleWebDbEnsureCreatedFailed(startupLogger, ex);
+    }
+}
+
 // Global exception handling
 app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
     {
@@ -225,6 +242,9 @@ internal static partial class StartupLog
 {
     [LoggerMessage(Level = LogLevel.Warning, Message = "Could not alter pweb_settings.value column (may already be LONGTEXT).")]
     public static partial void LogPwebSettingsAlterFailed(ILogger logger, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Could not ensure PoracleWeb database tables exist.")]
+    public static partial void LogPoracleWebDbEnsureCreatedFailed(ILogger logger, Exception ex);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception occurred.")]
     public static partial void LogUnhandledException(ILogger logger, Exception ex);

@@ -1,12 +1,14 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Core.Services;
 
 public partial class QuickPickService(
-    IPwebSettingService settingService,
+    IQuickPickDefinitionRepository definitionRepository,
+    IQuickPickAppliedStateRepository appliedStateRepository,
     IMonsterService monsterService,
     IRaidService raidService,
     IEggService eggService,
@@ -18,7 +20,8 @@ public partial class QuickPickService(
     IMasterDataService masterDataService,
     ILogger<QuickPickService> logger) : IQuickPickService
 {
-    private readonly IPwebSettingService _settingService = settingService;
+    private readonly IQuickPickDefinitionRepository _definitionRepository = definitionRepository;
+    private readonly IQuickPickAppliedStateRepository _appliedStateRepository = appliedStateRepository;
     private readonly IMonsterService _monsterService = monsterService;
     private readonly IRaidService _raidService = raidService;
     private readonly IEggService _eggService = eggService;
@@ -37,10 +40,6 @@ public partial class QuickPickService(
         WriteIndented = false
     };
 
-    private const string AdminKeyPrefix = "quick_pick:";
-    private const string UserKeyPrefix = "user_quick_pick:";
-    private const string AppliedKeyPrefix = "qp_applied:";
-
     // Whitelist of Monster filter properties safe to set via reflection in BuildMonster.
     // Excludes Uid, Id, PokemonId, ProfileNo which are set explicitly.
     private static readonly HashSet<string> SafeMonsterFilterKeys = new(StringComparer.OrdinalIgnoreCase)
@@ -53,55 +52,39 @@ public partial class QuickPickService(
 
     public async Task<IEnumerable<QuickPickSummary>> GetAllAsync(string userId, int profileNo)
     {
-        var allSettings = await this._settingService.GetAllAsync();
-        var settingsList = allSettings.ToList();
+        var globalPicks = await this._definitionRepository.GetAllGlobalAsync();
+        var userPicks = await this._definitionRepository.GetByOwnerAsync(userId);
 
-        var userPrefix = $"{UserKeyPrefix}{userId}:";
+        var allDefinitions = new List<QuickPickDefinition>(globalPicks.Count + userPicks.Count);
+        allDefinitions.AddRange(globalPicks);
+        allDefinitions.AddRange(userPicks);
+
         var summaries = new List<QuickPickSummary>();
 
-        foreach (var setting in settingsList)
+        foreach (var definition in allDefinitions)
         {
-            QuickPickDefinition? definition = null;
-
-            if (setting.Setting.StartsWith(AdminKeyPrefix, StringComparison.Ordinal))
-            {
-                definition = DeserializeDefinition(setting.Value);
-            }
-            else if (setting.Setting.StartsWith(userPrefix, StringComparison.Ordinal))
-            {
-                definition = DeserializeDefinition(setting.Value);
-            }
-
-            if (definition == null || !definition.Enabled)
+            if (!definition.Enabled)
             {
                 continue;
             }
 
-            var appliedKey = $"{AppliedKeyPrefix}{userId}:{profileNo}:{definition.Id}";
-            var appliedSetting = settingsList.FirstOrDefault(s => s.Setting == appliedKey);
-            QuickPickAppliedState? appliedState = null;
+            var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, definition.Id);
 
-            if (appliedSetting?.Value != null)
+            // Verify tracked alarms still exist — if all deleted manually, clear applied state
+            if (appliedState?.TrackedUids is { Count: > 0 })
             {
-                appliedState = JsonSerializer.Deserialize<QuickPickAppliedState>(appliedSetting.Value, JsonOptions);
-
-                // Verify tracked alarms still exist — if all deleted manually, clear applied state
-                if (appliedState?.TrackedUids is { Count: > 0 })
+                var remaining = await this.CountRemainingUidsAsync(definition.AlarmType, appliedState.TrackedUids);
+                if (remaining == 0)
                 {
-                    var remaining = await this.CountRemainingUidsAsync(definition.AlarmType, appliedState.TrackedUids);
-                    if (remaining == 0)
-                    {
-                        // All alarms were deleted manually — clean up stale applied state
-                        await this._settingService.DeleteAsync(appliedKey);
-                        appliedState = null;
-                    }
-                    else if (remaining < appliedState.TrackedUids.Count)
-                    {
-                        // Some alarms were deleted — update the tracked UIDs to only valid ones
-                        appliedState.TrackedUids = await this.GetValidUidsAsync(definition.AlarmType, appliedState.TrackedUids);
-                        var updatedJson = JsonSerializer.Serialize(appliedState, JsonOptions);
-                        await this._settingService.CreateOrUpdateAsync(new PwebSetting { Setting = appliedKey, Value = updatedJson });
-                    }
+                    // All alarms were deleted manually — clean up stale applied state
+                    await this._appliedStateRepository.DeleteAsync(userId, profileNo, definition.Id);
+                    appliedState = null;
+                }
+                else if (remaining < appliedState.TrackedUids.Count)
+                {
+                    // Some alarms were deleted — update the tracked UIDs to only valid ones
+                    appliedState.TrackedUids = await this.GetValidUidsAsync(definition.AlarmType, appliedState.TrackedUids);
+                    await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
                 }
             }
 
@@ -115,26 +98,14 @@ public partial class QuickPickService(
         return summaries.OrderBy(s => s.Definition.SortOrder).ThenBy(s => s.Definition.Name);
     }
 
-    public async Task<QuickPickDefinition?> GetByIdAsync(string id)
-    {
-        // Check admin picks first, then all user picks
-        var setting = await this._settingService.GetByKeyAsync($"{AdminKeyPrefix}{id}");
-        if (setting?.Value != null)
-        {
-            return DeserializeDefinition(setting.Value);
-        }
-
-        // For user picks we'd need the userId, but this method is used for admin lookup
-        return null;
-    }
+    public async Task<QuickPickDefinition?> GetByIdAsync(string id) => await this._definitionRepository.GetByIdAsync(id);
 
     public async Task<QuickPickDefinition> SaveAdminPickAsync(QuickPickDefinition definition)
     {
         definition.Scope = "global";
-        var key = $"{AdminKeyPrefix}{definition.Id}";
-        var json = JsonSerializer.Serialize(definition, JsonOptions);
+        definition.OwnerUserId = null;
 
-        await this._settingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = json });
+        await this._definitionRepository.CreateOrUpdateAsync(definition);
 
         return definition;
     }
@@ -142,26 +113,43 @@ public partial class QuickPickService(
     public async Task<QuickPickDefinition> SaveUserPickAsync(string userId, QuickPickDefinition definition)
     {
         definition.Scope = "user";
-        var key = $"{UserKeyPrefix}{userId}:{definition.Id}";
-        var json = JsonSerializer.Serialize(definition, JsonOptions);
+        definition.OwnerUserId = userId;
 
-        await this._settingService.CreateOrUpdateAsync(new PwebSetting { Setting = key, Value = json });
+        await this._definitionRepository.CreateOrUpdateAsync(definition);
 
         return definition;
     }
 
-    public async Task<bool> DeleteAdminPickAsync(string id) => await this._settingService.DeleteAsync($"{AdminKeyPrefix}{id}");
+    public async Task<bool> DeleteAdminPickAsync(string id)
+    {
+        var existing = await this._definitionRepository.GetByIdAsync(id);
+        if (existing == null)
+        {
+            return false;
+        }
 
-    public async Task<bool> DeleteUserPickAsync(string userId, string id) => await this._settingService.DeleteAsync($"{UserKeyPrefix}{userId}:{id}");
+        await this._definitionRepository.DeleteAsync(id);
+        return true;
+    }
+
+    public async Task<bool> DeleteUserPickAsync(string userId, string id)
+    {
+        var existing = await this._definitionRepository.GetByIdAndOwnerAsync(id, userId);
+        if (existing == null)
+        {
+            return false;
+        }
+
+        await this._definitionRepository.DeleteByIdAndOwnerAsync(id, userId);
+        return true;
+    }
 
     public async Task<QuickPickAppliedState> ApplyAsync(
         string userId, int profileNo, string quickPickId, QuickPickApplyRequest request)
     {
         var definition = await this.LoadDefinitionAsync(userId, quickPickId) ?? throw new InvalidOperationException($"Quick pick '{quickPickId}' not found.");
 
-        var trackedUids = new List<int>();
-
-        trackedUids = definition.AlarmType switch
+        var trackedUids = definition.AlarmType switch
         {
             "monster" => await this.ApplyMonsterAsync(userId, profileNo, definition, request),
             "raid" => await this.ApplyRaidAsync(userId, profileNo, definition, request),
@@ -175,15 +163,16 @@ public partial class QuickPickService(
         };
         var appliedState = new QuickPickAppliedState
         {
+            UserId = userId,
+            ProfileNo = profileNo,
             QuickPickId = quickPickId,
+            AlarmType = definition.AlarmType,
             AppliedAt = DateTime.UtcNow,
             ExcludePokemonIds = request.ExcludePokemonIds,
             TrackedUids = trackedUids
         };
 
-        var appliedKey = $"{AppliedKeyPrefix}{userId}:{profileNo}:{quickPickId}";
-        var json = JsonSerializer.Serialize(appliedState, JsonOptions);
-        await this._settingService.CreateOrUpdateAsync(new PwebSetting { Setting = appliedKey, Value = json });
+        await this._appliedStateRepository.CreateOrUpdateAsync(appliedState);
 
         LogQuickPickApplied(this._logger, quickPickId, userId, profileNo, trackedUids.Count);
 
@@ -199,23 +188,15 @@ public partial class QuickPickService(
 
     public async Task<bool> RemoveAsync(string userId, int profileNo, string quickPickId)
     {
-        var appliedKey = $"{AppliedKeyPrefix}{userId}:{profileNo}:{quickPickId}";
-        var setting = await this._settingService.GetByKeyAsync(appliedKey);
+        var appliedState = await this._appliedStateRepository.GetAsync(userId, profileNo, quickPickId);
 
-        if (setting?.Value == null)
-        {
-            return false;
-        }
-
-        var appliedState = JsonSerializer.Deserialize<QuickPickAppliedState>(setting.Value, JsonOptions);
         if (appliedState == null)
         {
             return false;
         }
 
-        // Load the definition to determine alarm type for deletion
-        var definition = await this.LoadDefinitionAsync(userId, quickPickId);
-        var alarmType = definition?.AlarmType ?? "monster";
+        // Use alarm type stored at apply time — works even if the definition was deleted
+        var alarmType = appliedState.AlarmType;
 
         // Delete each tracked alarm row
         foreach (var uid in appliedState.TrackedUids)
@@ -252,7 +233,7 @@ public partial class QuickPickService(
         }
 
         // Delete the applied state
-        await this._settingService.DeleteAsync(appliedKey);
+        await this._appliedStateRepository.DeleteAsync(userId, profileNo, quickPickId);
 
         LogQuickPickRemoved(this._logger, quickPickId, userId, profileNo, appliedState.TrackedUids.Count);
 
@@ -263,19 +244,13 @@ public partial class QuickPickService(
 
     public async Task SeedDefaultsAsync()
     {
-        // Delete any existing admin quick picks so we can re-seed cleanly
-        var allSettings = await this._settingService.GetAllAsync();
-        var existingKeys = allSettings
-            .Where(s => s.Setting.StartsWith(AdminKeyPrefix, StringComparison.Ordinal))
-            .Select(s => s.Setting)
-            .ToList();
+        // Delete any existing global quick picks so we can re-seed cleanly
+        var existingGlobal = await this._definitionRepository.GetAllGlobalAsync();
+        var existingCount = existingGlobal.Count;
 
-        foreach (var key in existingKeys)
-        {
-            await this._settingService.DeleteAsync(key);
-        }
+        await this._definitionRepository.DeleteAllGlobalAsync();
 
-        LogSeedingDefaults(this._logger, Defaults.Count, existingKeys.Count);
+        LogSeedingDefaults(this._logger, Defaults.Count, existingCount);
 
         foreach (var definition in Defaults)
         {
@@ -287,38 +262,15 @@ public partial class QuickPickService(
 
     private async Task<QuickPickDefinition?> LoadDefinitionAsync(string userId, string quickPickId)
     {
-        // Check admin picks first
-        var setting = await this._settingService.GetByKeyAsync($"{AdminKeyPrefix}{quickPickId}");
-        if (setting?.Value != null)
+        // Check global picks first
+        var definition = await this._definitionRepository.GetByIdAsync(quickPickId);
+        if (definition != null)
         {
-            return DeserializeDefinition(setting.Value);
+            return definition;
         }
 
         // Check user picks
-        setting = await this._settingService.GetByKeyAsync($"{UserKeyPrefix}{userId}:{quickPickId}");
-        if (setting?.Value != null)
-        {
-            return DeserializeDefinition(setting.Value);
-        }
-
-        return null;
-    }
-
-    private static QuickPickDefinition? DeserializeDefinition(string? json)
-    {
-        if (string.IsNullOrEmpty(json))
-        {
-            return null;
-        }
-
-        try
-        {
-            return JsonSerializer.Deserialize<QuickPickDefinition>(json, JsonOptions);
-        }
-        catch
-        {
-            return null;
-        }
+        return await this._definitionRepository.GetByIdAndOwnerAsync(quickPickId, userId);
     }
 
     // --- Pokemon ID expansion ---

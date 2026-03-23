@@ -20,7 +20,8 @@ namespace Pgan.PoracleWebNet.Api.Controllers;
 public partial class AuthController(
     IHumanService humanService,
     IPoracleApiProxy poracleApiProxy,
-    IPwebSettingService pwebSettingService,
+    ISiteSettingService siteSettingService,
+    IWebhookDelegateService webhookDelegateService,
     IOptions<JwtSettings> jwtSettings,
     IOptions<DiscordSettings> discordSettings,
     IOptions<TelegramSettings> telegramSettings,
@@ -30,7 +31,8 @@ public partial class AuthController(
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
-    private readonly IPwebSettingService _pwebSettingService = pwebSettingService;
+    private readonly ISiteSettingService _siteSettingService = siteSettingService;
+    private readonly IWebhookDelegateService _webhookDelegateService = webhookDelegateService;
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
     private readonly DiscordSettings _discordSettings = discordSettings.Value;
     private readonly TelegramSettings _telegramSettings = telegramSettings.Value;
@@ -395,7 +397,7 @@ public partial class AuthController(
 
     /// <summary>
     /// Calls PoracleJS getAdministrationRoles once and returns (isAdmin, managedWebhooks).
-    /// managedWebhooks merges: Poracle-resolved webhook delegation + our own pweb_settings layer.
+    /// managedWebhooks merges: Poracle-resolved webhook delegation + our own webhook delegate service layer.
     /// </summary>
     private async Task<(bool isAdmin, string[]? managedWebhooks)> GetRolesAsync(string userId)
     {
@@ -478,22 +480,13 @@ public partial class AuthController(
             return (true, null);
         }
 
-        // Also merge our own pweb_settings delegation layer
+        // Also merge our own webhook delegate service layer
         try
         {
-            var allSettings = await this._pwebSettingService.GetAllAsync();
-            const string prefix = "webhook_delegates:";
-            foreach (var setting in allSettings)
+            var managedWebhookIds = await this._webhookDelegateService.GetManagedWebhookIdsAsync(userId);
+            foreach (var webhookId in managedWebhookIds)
             {
-                if (setting.Setting?.StartsWith(prefix, StringComparison.Ordinal) == true)
-                {
-                    var delegates = setting.Value?.Split(',',
-                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
-                    if (delegates.Contains(userId))
-                    {
-                        managed.Add(setting.Setting[prefix.Length..]);
-                    }
-                }
+                managed.Add(webhookId);
             }
         }
         catch (Exception ex)
@@ -512,19 +505,16 @@ public partial class AuthController(
     {
         try
         {
-            var allSettings = await this._pwebSettingService.GetAllAsync();
-            var settingsMap = allSettings.ToDictionary(s => s.Setting ?? "", s => s.Value ?? "");
-
             // Check if role-based access is enabled
-            if (!settingsMap.TryGetValue("enable_roles", out var enableRoles) ||
-                !string.Equals(enableRoles, "True", StringComparison.OrdinalIgnoreCase))
+            var enableRoles = await this._siteSettingService.GetBoolAsync("enable_roles");
+            if (!enableRoles)
             {
                 return null; // Not enabled, allow access
             }
 
             // Get allowed role IDs
-            if (!settingsMap.TryGetValue("allowed_role_ids", out var roleIdsStr) ||
-                string.IsNullOrWhiteSpace(roleIdsStr))
+            var roleIdsStr = await this._siteSettingService.GetValueAsync("allowed_role_ids");
+            if (string.IsNullOrWhiteSpace(roleIdsStr))
             {
                 return null; // No roles configured, allow everyone
             }
@@ -632,6 +622,6 @@ public partial class AuthController(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch administration roles for {UserId}.")]
     private static partial void LogAdminRolesFetchFailed(ILogger logger, Exception ex, string userId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch pweb_settings delegates for {UserId}.")]
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch webhook delegates for {UserId}.")]
     private static partial void LogPwebDelegatesFetchFailed(ILogger logger, Exception ex, string userId);
 }

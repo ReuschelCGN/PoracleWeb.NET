@@ -10,8 +10,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
-import { PwebSetting } from '../../core/models';
+import { PwebSetting, SiteSetting } from '../../core/models';
 import { SettingsService } from '../../core/services/settings.service';
+
+/** Union type for backward compatibility during migration */
+type AnySettingItem = PwebSetting | SiteSetting;
+
+/** Extract the key from either setting shape */
+function settingKey(item: AnySettingItem): string {
+  return 'key' in item ? item.key : item.setting;
+}
 
 interface SettingMeta {
   description: string;
@@ -263,10 +271,10 @@ export class AdminSettingsComponent implements OnInit {
     'admin_channel_id',
   ];
 
-  readonly settings = signal<PwebSetting[]>([]);
+  readonly settings = signal<AnySettingItem[]>([]);
   private readonly settingMap = computed(() => {
     const map = new Map<string, string | null>();
-    for (const s of this.settings()) map.set(s.setting, s.value);
+    for (const s of this.settings()) map.set(settingKey(s), s.value);
     return map;
   });
 
@@ -337,7 +345,10 @@ export class AdminSettingsComponent implements OnInit {
   readonly settingsLoading = signal(true);
 
   readonly unknownSettings = computed(() =>
-    this.settings().filter(s => !this.allDefinedKeys.has(s.setting) && !this.internalPrefixes.some(p => s.setting.startsWith(p))),
+    this.settings().filter(s => {
+      const k = settingKey(s);
+      return !this.allDefinedKeys.has(k) && !this.internalPrefixes.some(p => k.startsWith(p));
+    }),
   );
 
   readonly visibleGroups = computed(() => SETTING_GROUPS.filter(g => g.settings.some(s => this.settingMap().has(s.key))));
@@ -359,6 +370,11 @@ export class AdminSettingsComponent implements OnInit {
   isSettingVisible(meta: SettingMeta): boolean {
     if (!meta.showWhen) return true;
     return this.getBool(meta.showWhen);
+  }
+
+  /** Get the key string from an AnySettingItem (for use in the template) */
+  itemKey(item: AnySettingItem): string {
+    return settingKey(item);
   }
 
   ngOnInit(): void {
@@ -434,16 +450,16 @@ export class AdminSettingsComponent implements OnInit {
       this.applyChange(key, value);
       // Also update the settings list so the value is reflected immediately
       this.settings.update(list => {
-        const exists = list.some(s => s.setting === key);
-        if (exists) return list.map(s => (s.setting === key ? { ...s, value } : s));
-        return [...list, { setting: key, value }];
+        const exists = list.some(s => settingKey(s) === key);
+        if (exists) return list.map(s => (settingKey(s) === key ? { ...s, key, value } : s));
+        return [...list, { key, value } as unknown as AnySettingItem];
       });
     }
     this.snackBar.open(`Selected ${repo.base.split('/').pop()} icons — click Save to apply`, 'OK', { duration: 4000 });
   }
 
   private applyChange(key: string, value: string): void {
-    this.settings.update(list => list.map(s => (s.setting === key ? { ...s, value } : s)));
+    this.settings.update(list => list.map(s => (settingKey(s) === key ? { ...s, value } : s)));
     this.modifiedSettings.update(map => {
       const m = new Map(map);
       m.set(key, value);

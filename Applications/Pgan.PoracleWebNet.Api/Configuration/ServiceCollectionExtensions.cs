@@ -23,7 +23,8 @@ public static class ServiceCollectionExtensions
         // Register PoracleWebContext for the poracle_web database (owned by this app)
         var webConnectionString = configuration.GetConnectionString("PoracleWebDb");
         services.AddDbContext<PoracleWebContext>(options =>
-            options.UseMySQL(webConnectionString!));
+            options.UseMySQL(webConnectionString!)
+                .ReplaceService<Microsoft.EntityFrameworkCore.Migrations.IHistoryRepository, MariaDbHistoryRepository>());
 
         // Register MemoryCache
         services.AddMemoryCache();
@@ -44,6 +45,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IProfileRepository, ProfileRepository>();
         services.AddScoped<IPwebSettingRepository, PwebSettingRepository>();
         services.AddScoped<IUserGeofenceRepository, UserGeofenceRepository>();
+        services.AddScoped<ISiteSettingRepository, SiteSettingRepository>();
+        services.AddScoped<IWebhookDelegateRepository, WebhookDelegateRepository>();
+        services.AddScoped<IQuickPickDefinitionRepository, QuickPickDefinitionRepository>();
+        services.AddScoped<IQuickPickAppliedStateRepository, QuickPickAppliedStateRepository>();
 
         // Register Unit of Work
         services.AddScoped<IPoracleUnitOfWork, PoracleUnitOfWork>();
@@ -65,6 +70,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMasterDataService, MasterDataService>();
         services.AddScoped<IQuickPickService, QuickPickService>();
         services.AddScoped<IUserGeofenceService, UserGeofenceService>();
+        services.AddScoped<ISiteSettingService, SiteSettingService>();
+        services.AddScoped<IWebhookDelegateService, WebhookDelegateService>();
+        services.AddScoped<ISettingsMigrationService, SettingsMigrationService>();
 
         // Register Scanner DB (optional - only if connection string is configured)
         var scannerConnectionString = configuration.GetConnectionString("ScannerDb");

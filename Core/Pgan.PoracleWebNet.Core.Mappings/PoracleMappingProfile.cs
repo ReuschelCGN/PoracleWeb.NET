@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Data.Entities;
 
@@ -5,6 +6,11 @@ namespace Pgan.PoracleWebNet.Core.Mappings;
 
 public class PoracleMappingProfile : AutoMapper.Profile
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
     public PoracleMappingProfile()
     {
         // Monster mappings
@@ -78,5 +84,40 @@ public class PoracleMappingProfile : AutoMapper.Profile
         this.CreateMap<UserGeofence, UserGeofenceEntity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore());
 
+        // Site Settings
+        this.CreateMap<SiteSettingEntity, SiteSetting>().ReverseMap();
+
+        // Webhook Delegates
+        this.CreateMap<WebhookDelegateEntity, WebhookDelegate>().ReverseMap();
+
+        // Quick Pick Definitions — custom mapping for FiltersJson ↔ Filters dictionary
+        this.CreateMap<QuickPickDefinitionEntity, QuickPickDefinition>()
+            .ForMember(d => d.Filters, opt => opt.MapFrom(s =>
+                string.IsNullOrEmpty(s.FiltersJson)
+                    ? new Dictionary<string, object?>()
+                    : JsonSerializer.Deserialize<Dictionary<string, object?>>(s.FiltersJson, JsonOptions)))
+            .ForMember(d => d.OwnerUserId, opt => opt.MapFrom(s => s.OwnerUserId));
+
+        this.CreateMap<QuickPickDefinition, QuickPickDefinitionEntity>()
+            .ForMember(d => d.FiltersJson, opt => opt.MapFrom(s =>
+                JsonSerializer.Serialize(s.Filters, JsonOptions)))
+            .ForMember(d => d.OwnerUserId, opt => opt.MapFrom(s => s.OwnerUserId));
+
+        // Quick Pick Applied States — custom mapping for JSON list columns
+        this.CreateMap<QuickPickAppliedStateEntity, QuickPickAppliedState>()
+            .ForMember(d => d.ExcludePokemonIds, opt => opt.MapFrom(s =>
+                string.IsNullOrEmpty(s.ExcludePokemonIdsJson)
+                    ? new List<int>()
+                    : JsonSerializer.Deserialize<List<int>>(s.ExcludePokemonIdsJson, JsonOptions)))
+            .ForMember(d => d.TrackedUids, opt => opt.MapFrom(s =>
+                string.IsNullOrEmpty(s.TrackedUidsJson)
+                    ? new List<int>()
+                    : JsonSerializer.Deserialize<List<int>>(s.TrackedUidsJson, JsonOptions)));
+
+        this.CreateMap<QuickPickAppliedState, QuickPickAppliedStateEntity>()
+            .ForMember(d => d.ExcludePokemonIdsJson, opt => opt.MapFrom(s =>
+                JsonSerializer.Serialize(s.ExcludePokemonIds, JsonOptions)))
+            .ForMember(d => d.TrackedUidsJson, opt => opt.MapFrom(s =>
+                JsonSerializer.Serialize(s.TrackedUids, JsonOptions)));
     }
 }
