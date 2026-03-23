@@ -13,6 +13,7 @@ public partial class UserGeofenceService(
     IPoracleApiProxy poracleApiProxy,
     IPoracleServerService poracleServerService,
     IHumanRepository humanRepository,
+    IProfileRepository profileRepository,
     IDiscordNotificationService discordNotificationService,
     ILogger<UserGeofenceService> logger) : IUserGeofenceService
 {
@@ -23,6 +24,7 @@ public partial class UserGeofenceService(
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IPoracleServerService _poracleServerService = poracleServerService;
     private readonly IHumanRepository _humanRepository = humanRepository;
+    private readonly IProfileRepository _profileRepository = profileRepository;
     private readonly IDiscordNotificationService _discordNotificationService = discordNotificationService;
     private readonly ILogger<UserGeofenceService> _logger = logger;
 
@@ -147,8 +149,8 @@ public partial class UserGeofenceService(
             throw new UnauthorizedAccessException("Geofence does not belong to this user.");
         }
 
-        // Remove kojiName from user's humans.area JSON array
-        await this.RemoveAreaFromHumanAsync(humanId, profileNo, geofence.KojiName);
+        // Remove kojiName from all profiles (humans.area + profiles.area)
+        await this.RemoveAreaFromAllProfilesAsync(humanId, profileNo, geofence.KojiName);
 
         // Delete from local DB
         await this._repository.DeleteAsync(id);
@@ -180,13 +182,13 @@ public partial class UserGeofenceService(
             }
         }
 
-        // Remove from user's humans.area
+        // Remove from user's area across all profiles
         try
         {
             var areaName = geofence.Status == "approved" && geofence.PromotedName != null
                 ? geofence.PromotedName.ToLowerInvariant()
                 : geofence.KojiName;
-            await this.RemoveAreaFromHumanAsync(geofence.HumanId, 1, areaName);
+            await this.RemoveAreaFromAllProfilesAsync(geofence.HumanId, 1, areaName);
         }
         catch (Exception ex)
         {
@@ -397,6 +399,32 @@ public partial class UserGeofenceService(
         return updated;
     }
 
+    public async Task AddToProfileAsync(string humanId, int profileNo, int geofenceId)
+    {
+        var geofence = await this._repository.GetByIdAsync(geofenceId)
+            ?? throw new InvalidOperationException($"Geofence with ID {geofenceId} not found.");
+
+        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Geofence does not belong to this user.");
+        }
+
+        await this.AddAreaToHumanAsync(humanId, profileNo, geofence.KojiName);
+    }
+
+    public async Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId)
+    {
+        var geofence = await this._repository.GetByIdAsync(geofenceId)
+            ?? throw new InvalidOperationException($"Geofence with ID {geofenceId} not found.");
+
+        if (!string.Equals(geofence.HumanId, humanId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Geofence does not belong to this user.");
+        }
+
+        await this.RemoveAreaFromHumanAsync(humanId, profileNo, geofence.KojiName);
+    }
+
     public async Task<List<GeofenceRegion>> GetRegionsAsync() => await this._kojiService.GetRegionsAsync();
 
     private async Task AddAreaToHumanAsync(string humanId, int profileNo, string geofenceName)
@@ -436,6 +464,28 @@ public partial class UserGeofenceService(
             : "[]";
 
         await this._humanRepository.UpdateAsync(human);
+    }
+
+    private async Task RemoveAreaFromAllProfilesAsync(string humanId, int profileNo, string geofenceName)
+    {
+        var lowerName = geofenceName.ToLowerInvariant();
+
+        // Remove from humans.area (active profile)
+        await this.RemoveAreaFromHumanAsync(humanId, profileNo, geofenceName);
+
+        // Remove from all profiles.area entries
+        var profiles = await this._profileRepository.GetByUserAsync(humanId);
+        foreach (var profile in profiles)
+        {
+            var areas = ParseAreas(profile.Area);
+            if (areas.Remove(lowerName))
+            {
+                profile.Area = areas.Count > 0
+                    ? JsonSerializer.Serialize(areas)
+                    : "[]";
+                await this._profileRepository.UpdateAsync(profile);
+            }
+        }
     }
 
     private static List<string> ParseAreas(string? areaJson)

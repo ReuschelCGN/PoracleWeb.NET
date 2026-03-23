@@ -149,6 +149,26 @@ describe('UserGeofenceService', () => {
     httpMock.expectOne(`${API}/api/geofences/custom/${encodeURIComponent(kojiName)}/submit`);
   });
 
+  it('should activate a geofence', () => {
+    const geofenceId = 5;
+    service.activateGeofence(geofenceId).subscribe();
+
+    const req = httpMock.expectOne(`${API}/api/geofences/custom/${geofenceId}/activate`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    req.flush(null);
+  });
+
+  it('should deactivate a geofence', () => {
+    const geofenceId = 5;
+    service.deactivateGeofence(geofenceId).subscribe();
+
+    const req = httpMock.expectOne(`${API}/api/geofences/custom/${geofenceId}/deactivate`);
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({});
+    req.flush(null);
+  });
+
   it('should handle empty geofences list', () => {
     service.getCustomGeofences().subscribe(result => {
       expect(result).toEqual([]);

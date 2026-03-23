@@ -14,6 +14,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IPoracleApiProxy> _poracleApiProxy = new();
     private readonly Mock<IPoracleServerService> _poracleServerService = new();
     private readonly Mock<IHumanRepository> _humanRepo = new();
+    private readonly Mock<IProfileRepository> _profileRepo = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
@@ -24,6 +25,7 @@ public class UserGeofenceServiceTests
             this._poracleApiProxy.Object,
             this._poracleServerService.Object,
             this._humanRepo.Object,
+            this._profileRepo.Object,
             this._discordNotificationService.Object,
             this._logger.Object);
 
@@ -217,6 +219,34 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.DeleteAsync("u1", 1, 99));
+    }
+
+    [Fact]
+    public async Task DeleteAsyncRemovesAreaFromAllProfiles()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        var human = new Human { Id = "u1", Area = "[\"downtown\",\"other\"]" };
+        var profile1 = new Profile { Id = "u1", ProfileNo = 1, Area = "[\"downtown\",\"park\"]" };
+        var profile2 = new Profile { Id = "u1", ProfileNo = 2, Area = "[\"downtown\"]" };
+        var profile3 = new Profile { Id = "u1", ProfileNo = 3, Area = "[\"park\"]" };
+
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
+        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+        this._profileRepo.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync([profile1, profile2, profile3]);
+        this._profileRepo.Setup(r => r.UpdateAsync(It.IsAny<Profile>())).ReturnsAsync((Profile p) => p);
+
+        await this._sut.DeleteAsync("u1", 1, 1);
+
+        // humans.area should not contain "downtown"
+        Assert.DoesNotContain("downtown", human.Area);
+        // Profile 1 and 2 had "downtown" and should be updated
+        Assert.DoesNotContain("downtown", profile1.Area);
+        Assert.DoesNotContain("downtown", profile2.Area);
+        Assert.Contains("park", profile1.Area);
+        // Profile 3 never had "downtown", should not be updated
+        this._profileRepo.Verify(r => r.UpdateAsync(profile3), Times.Never);
+        this._profileRepo.Verify(r => r.UpdateAsync(It.IsAny<Profile>()), Times.Exactly(2));
     }
 
     // --- SubmitForReviewAsync ---
@@ -607,5 +637,86 @@ public class UserGeofenceServiceTests
         var result = await this._sut.GetRegionsAsync();
 
         Assert.Equal(regions, result);
+    }
+
+    // --- AddToProfileAsync ---
+
+    [Fact]
+    public async Task AddToProfileAsyncAddsAreaNameToHuman()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        var human = new Human { Id = "u1", Area = "[\"existing\"]" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
+        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        await this._sut.AddToProfileAsync("u1", 1, 1);
+
+        Assert.Contains("downtown", human.Area);
+        Assert.Contains("existing", human.Area);
+        this._humanRepo.Verify(r => r.UpdateAsync(human), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncThrowsWhenGeofenceNotFound()
+    {
+        this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.AddToProfileAsync("u1", 1, 99));
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncThrowsWhenNotOwned()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => this._sut.AddToProfileAsync("u1", 1, 1));
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncIsIdempotent()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        var human = new Human { Id = "u1", Area = "[\"downtown\"]" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
+        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        await this._sut.AddToProfileAsync("u1", 1, 1);
+
+        // Should still have exactly one "downtown" entry, not duplicated
+        var areas = System.Text.Json.JsonSerializer.Deserialize<List<string>>(human.Area)!;
+        Assert.Single(areas, a => a == "downtown");
+    }
+
+    // --- RemoveFromProfileAsync ---
+
+    [Fact]
+    public async Task RemoveFromProfileAsyncRemovesAreaNameFromHuman()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        var human = new Human { Id = "u1", Area = "[\"existing\",\"downtown\"]" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._humanRepo.Setup(r => r.GetByIdAndProfileAsync("u1", 1)).ReturnsAsync(human);
+        this._humanRepo.Setup(r => r.UpdateAsync(It.IsAny<Human>())).ReturnsAsync((Human h) => h);
+
+        await this._sut.RemoveFromProfileAsync("u1", 1, 1);
+
+        Assert.DoesNotContain("downtown", human.Area);
+        Assert.Contains("existing", human.Area);
+        this._humanRepo.Verify(r => r.UpdateAsync(human), Times.Once);
+    }
+
+    [Fact]
+    public async Task RemoveFromProfileAsyncThrowsWhenNotOwned()
+    {
+        var geofence = new UserGeofence { Id = 1, HumanId = "other_user", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => this._sut.RemoveFromProfileAsync("u1", 1, 1));
     }
 }

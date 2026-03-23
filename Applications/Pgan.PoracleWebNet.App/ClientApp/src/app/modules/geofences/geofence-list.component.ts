@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -32,6 +33,7 @@ const MAX_CUSTOM_GEOFENCES = 10;
     MatDialogModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    MatSlideToggleModule,
     MatSnackBarModule,
     MatTooltipModule,
     AreaMapComponent,
@@ -49,6 +51,7 @@ export class GeofenceListComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly userGeofenceService = inject(UserGeofenceService);
 
+  readonly activeAreas = signal<string[]>([]);
   readonly availableAreas = signal<AreaDefinition[]>([]);
   readonly customGeofences = signal<UserGeofence[]>([]);
 
@@ -177,7 +180,12 @@ export class GeofenceListComponent implements OnInit {
     });
   }
 
+  isGeofenceActive(geofence: UserGeofence): boolean {
+    return this.activeAreas().includes(geofence.kojiName);
+  }
+
   ngOnInit(): void {
+    this.loadActiveAreas();
     this.loadCustomGeofences();
     this.loadRegions();
     this.loadGeofencePolygons();
@@ -270,6 +278,47 @@ export class GeofenceListComponent implements OnInit {
       return;
     }
     this.drawMode.update(v => !v);
+  }
+
+  toggleGeofenceProfile(geofence: UserGeofence): void {
+    const active = this.isGeofenceActive(geofence);
+    const action$ = active
+      ? this.userGeofenceService.deactivateGeofence(geofence.id)
+      : this.userGeofenceService.activateGeofence(geofence.id);
+
+    // Optimistic update
+    if (active) {
+      this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
+    } else {
+      this.activeAreas.update(areas => [...areas, geofence.kojiName]);
+    }
+
+    action$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      error: () => {
+        // Revert on error
+        if (active) {
+          this.activeAreas.update(areas => [...areas, geofence.kojiName]);
+        } else {
+          this.activeAreas.update(areas => areas.filter(a => a !== geofence.kojiName));
+        }
+        this.snackBar.open(`Failed to ${active ? 'deactivate' : 'activate'} geofence`, 'OK', { duration: 3000 });
+      },
+      next: () => {
+        this.snackBar.open(active ? 'Geofence deactivated for this profile' : 'Geofence activated for this profile', 'OK', {
+          duration: 3000,
+        });
+      },
+    });
+  }
+
+  private loadActiveAreas(): void {
+    this.areaService
+      .getSelected()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        error: () => {},
+        next: areas => this.activeAreas.set(areas),
+      });
   }
 
   private loadAvailableAreas(): void {

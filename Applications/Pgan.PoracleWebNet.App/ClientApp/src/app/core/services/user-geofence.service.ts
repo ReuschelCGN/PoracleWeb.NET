@@ -10,8 +10,16 @@ export class UserGeofenceService {
   private readonly config = inject(ConfigService);
   private readonly http = inject(HttpClient);
 
+  activateGeofence(id: number): Observable<void> {
+    return this.http.post<void>(`${this.config.apiHost}/api/geofences/custom/${id}/activate`, {});
+  }
+
   createGeofence(data: UserGeofenceCreate): Observable<UserGeofence> {
     return this.http.post<UserGeofence>(`${this.config.apiHost}/api/geofences/custom`, data);
+  }
+
+  deactivateGeofence(id: number): Observable<void> {
+    return this.http.post<void>(`${this.config.apiHost}/api/geofences/custom/${id}/deactivate`, {});
   }
 
   deleteGeofence(id: number): Observable<void> {

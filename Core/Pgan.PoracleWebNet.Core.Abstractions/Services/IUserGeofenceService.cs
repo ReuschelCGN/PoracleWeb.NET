@@ -13,5 +13,7 @@ public interface IUserGeofenceService
     public Task AdminDeleteAsync(string adminId, int id);
     public Task<UserGeofence> ApproveSubmissionAsync(string adminId, int id, string? promotedName);
     public Task<UserGeofence> RejectSubmissionAsync(string adminId, int id, string reviewNotes);
+    public Task AddToProfileAsync(string humanId, int profileNo, int geofenceId);
+    public Task RemoveFromProfileAsync(string humanId, int profileNo, int geofenceId);
     public Task<List<GeofenceRegion>> GetRegionsAsync();
 }

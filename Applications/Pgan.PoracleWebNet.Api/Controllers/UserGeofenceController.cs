@@ -79,6 +79,50 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
         }
     }
 
+    [HttpPost("custom/{id:int}/activate")]
+    public async Task<IActionResult> ActivateGeofence(int id)
+    {
+        try
+        {
+            await this._userGeofenceService.AddToProfileAsync(this.UserId, this.ProfileNo, id);
+            return this.NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogActivateGeofenceUnauthorized(this._logger, ex, this.UserId, id);
+            return this.Forbid();
+        }
+    }
+
+    [HttpPost("custom/{id:int}/deactivate")]
+    public async Task<IActionResult> DeactivateGeofence(int id)
+    {
+        try
+        {
+            await this._userGeofenceService.RemoveFromProfileAsync(this.UserId, this.ProfileNo, id);
+            return this.NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            LogDeactivateGeofenceUnauthorized(this._logger, ex, this.UserId, id);
+            return this.Forbid();
+        }
+    }
+
     [HttpGet("regions")]
     public async Task<IActionResult> GetRegions()
     {
@@ -102,6 +146,12 @@ public partial class UserGeofenceController(IUserGeofenceService userGeofenceSer
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "User {UserId} attempted to submit geofence '{KojiName}' they don't own")]
     private static partial void LogSubmitGeofenceUnauthorized(ILogger logger, Exception ex, string userId, string kojiName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "User {UserId} attempted to activate geofence ID {Id} they don't own")]
+    private static partial void LogActivateGeofenceUnauthorized(ILogger logger, Exception ex, string userId, int id);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "User {UserId} attempted to deactivate geofence ID {Id} they don't own")]
+    private static partial void LogDeactivateGeofenceUnauthorized(ILogger logger, Exception ex, string userId, int id);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch geofence regions from Koji")]
     private static partial void LogFetchRegionsFailed(ILogger logger, Exception ex);
