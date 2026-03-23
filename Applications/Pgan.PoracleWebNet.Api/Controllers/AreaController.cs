@@ -154,9 +154,6 @@ public partial class AreaController(IHumanService humanService, IProfileService 
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to parse area JSON for user {UserId}, falling back to comma-separated")]
-    private static partial void LogParseAreaJsonFailed(ILogger logger, Exception ex, string userId);
-
     [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch available areas from Poracle API for user {UserId}")]
     private static partial void LogFetchAvailableAreasFailed(ILogger logger, Exception ex, string userId);
 
