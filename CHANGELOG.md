@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2026-03-23
 
-## [0.6.0] - 2026-03-23
-
 ### Added
 - **In-app Help & User Guide page** ([PR #26](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/26))
 - **EF Core migrations for PoracleWeb database**: Schema changes apply automatically on startup via `MigrateAsync()`. Includes `MariaDbHistoryRepository` to fix `GET_LOCK(-1)` incompatibility with MariaDB. ([PR #35](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/35))
@@ -177,7 +175,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment with Watchtower auto-updates
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.5...v0.6.0
 [0.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.5...v0.6.0
 [0.5.5]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
