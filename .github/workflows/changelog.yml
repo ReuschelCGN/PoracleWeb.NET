@@ -70,6 +70,14 @@ jobs:
           PR_NUM="${{ steps.categorize.outputs.pr_num }}"
           PR_URL="${{ steps.categorize.outputs.pr_url }}"
 
+          # Skip if this PR is already referenced in the [Unreleased] section
+          # (e.g., changelog was updated manually in the PR branch)
+          UNRELEASED_BLOCK=$(awk '/^## \[Unreleased\]/,/^## \[[0-9]/' CHANGELOG.md 2>/dev/null)
+          if echo "$UNRELEASED_BLOCK" | grep -qF "#$PR_NUM"; then
+            echo "PR #$PR_NUM already referenced in [Unreleased] — skipping auto-insert"
+            exit 0
+          fi
+
           # Check if CHANGELOG.md exists
           if [ ! -f CHANGELOG.md ]; then
             cat > CHANGELOG.md << 'INIT'
