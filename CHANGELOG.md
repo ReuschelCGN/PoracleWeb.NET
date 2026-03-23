@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- geofence profile toggle and cross-profile delete cleanup ([PR #37](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/37))
 ## [0.6.0] - 2026-03-23
 
 ### Added
