@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-03-23
+
 ### Added
 - **Per-profile geofence toggle**: Slide toggle on each custom geofence card to activate/deactivate notifications per profile without recreating the geofence. New `POST /api/geofences/custom/{id}/activate` and `POST /api/geofences/custom/{id}/deactivate` endpoints with ownership validation. ([#36](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/36), [PR #37](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/37))
 
@@ -182,7 +184,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.5...v0.6.0
 [0.5.5]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.5.3...v0.5.4
