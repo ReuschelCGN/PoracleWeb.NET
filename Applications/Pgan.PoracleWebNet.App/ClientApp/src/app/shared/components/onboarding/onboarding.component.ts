@@ -234,11 +234,11 @@ export class OnboardingComponent implements OnInit {
   areasSet = signal(false);
   locationSet = signal(false);
   allComplete = computed(() => this.locationSet() && this.areasSet() && this.alarmsExist());
-  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
   completed = output<void>();
   currentStep = signal(0);
-
   navigatedAway = output<void>();
+
+  siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
 
   steps = [
     {

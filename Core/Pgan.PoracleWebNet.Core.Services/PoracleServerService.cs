@@ -194,7 +194,12 @@ public partial class PoracleServerService(
                 ValidateHostname(server.SshUser, "sshUser");
 
                 // Encode the key/value as base64 JSON to avoid shell/Python injection
-                var payloadJson = JsonSerializer.Serialize(new { key = geofenceName, value = group, path = server.GroupMapPath });
+                var payloadJson = JsonSerializer.Serialize(new
+                {
+                    key = geofenceName,
+                    value = group,
+                    path = server.GroupMapPath
+                });
                 var payloadBase64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(payloadJson));
                 var updateScript = $"python3 -c \\\"import json,base64,sys; p=json.loads(base64.b64decode('{payloadBase64}')); f=p['path']; d=json.load(open(f)); d[p['key']]=p['value']; json.dump(d,open(f,'w'),indent=2)\\\"";
 

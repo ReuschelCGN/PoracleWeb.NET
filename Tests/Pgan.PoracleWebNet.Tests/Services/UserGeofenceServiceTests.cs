@@ -366,11 +366,8 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
-    public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameHasInvalidChars()
-    {
-        await Assert.ThrowsAsync<InvalidOperationException>(
+    public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameHasInvalidChars() => await Assert.ThrowsAsync<InvalidOperationException>(
             () => this._sut.ApproveSubmissionAsync("admin1", 1, "test<script>"));
-    }
 
     [Fact]
     public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameTooLong()
@@ -382,11 +379,8 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
-    public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameIsEmpty()
-    {
-        await Assert.ThrowsAsync<InvalidOperationException>(
+    public async Task ApproveSubmissionAsyncThrowsWhenPromotedNameIsEmpty() => await Assert.ThrowsAsync<InvalidOperationException>(
             () => this._sut.ApproveSubmissionAsync("admin1", 1, "   "));
-    }
 
     [Fact]
     public async Task ApproveSubmissionAsyncAcceptsValidPromotedName()
@@ -394,8 +388,13 @@ public class UserGeofenceServiceTests
         var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0] };
         var geofence = new UserGeofence
         {
-            Id = 1, HumanId = "u1", KojiName = "downtown", DisplayName = "Downtown",
-            GroupName = "City", ParentId = 5, Status = "pending_review",
+            Id = 1,
+            HumanId = "u1",
+            KojiName = "downtown",
+            DisplayName = "Downtown",
+            GroupName = "City",
+            ParentId = 5,
+            Status = "pending_review",
             PolygonJson = System.Text.Json.JsonSerializer.Serialize(polygon)
         };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);

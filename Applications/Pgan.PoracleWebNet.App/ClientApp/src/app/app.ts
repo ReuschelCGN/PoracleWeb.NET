@@ -62,6 +62,12 @@ export class App implements OnInit {
   private readonly dashboardService = inject(DashboardService);
   private readonly settingsService = inject(SettingsService);
 
+  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
+
+  private readonly titleEffect = effect(() => {
+    document.title = this.siteTitle();
+  });
+
   protected readonly accentTheme = signal(localStorage.getItem('poracle-accent') || '');
 
   protected readonly auth = inject(AuthService);
@@ -200,12 +206,6 @@ export class App implements OnInit {
   protected readonly sidenavCollapsed = signal(localStorage.getItem('poracle-sidenav-collapsed') === 'true');
 
   protected readonly sidenavOpened = signal(!this.isMobile());
-
-  protected readonly siteTitle = computed(() => this.settingsService.siteSettings()['custom_title'] || 'DM Alerts');
-
-  private readonly titleEffect = effect(() => {
-    document.title = this.siteTitle();
-  });
 
   protected readonly supportNavItems = computed(() => this.navItems.filter(item => item.group === 'support'));
 

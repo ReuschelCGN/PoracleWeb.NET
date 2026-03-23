@@ -236,11 +236,11 @@ npx eslint --fix src/  # Auto-fix lint
 npm run prettier-format # Auto-format
 
 # Docker — build from source
-docker build -t poracleweb-local:latest .
+docker build -t poracleweb.net:latest .
 docker compose up -d
 
 # Docker — force clean rebuild
-docker build --no-cache -t poracleweb-local:latest .
+docker build --no-cache -t poracleweb.net:latest .
 docker compose up -d --force-recreate
 ```
 

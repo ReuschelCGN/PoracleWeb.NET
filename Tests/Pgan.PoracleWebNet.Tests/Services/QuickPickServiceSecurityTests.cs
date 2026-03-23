@@ -21,9 +21,7 @@ public class QuickPickServiceSecurityTests
     private readonly Mock<ILogger<QuickPickService>> _logger = new();
     private readonly QuickPickService _sut;
 
-    public QuickPickServiceSecurityTests()
-    {
-        this._sut = new QuickPickService(
+    public QuickPickServiceSecurityTests() => this._sut = new QuickPickService(
             this._settingService.Object,
             this._monsterService.Object,
             this._raidService.Object,
@@ -35,7 +33,6 @@ public class QuickPickServiceSecurityTests
             this._gymService.Object,
             this._masterDataService.Object,
             this._logger.Object);
-    }
 
     [Fact]
     public async Task ApplyAsyncIgnoresIdAndUidInMonsterFilters()
