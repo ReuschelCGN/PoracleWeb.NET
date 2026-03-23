@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- remove hardcoded branding, rename namespaces to Pgan.PoracleWebNet ([PR #32](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/32))
 - MkDocs build — remove unsupported option, pin mkdocs<2 ([PR #31](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/31))
 - IDOR, OAuth redirect, command injection, CORS, and code quality ([PR #28](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/28))
 
