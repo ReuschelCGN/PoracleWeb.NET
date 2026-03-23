@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 
@@ -20,6 +21,7 @@ public class SettingsController(IPwebSettingService settingService) : BaseApiCon
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("auth-read")]
     [HttpGet("public")]
     public async Task<IActionResult> GetPublic()
     {
