@@ -52,6 +52,7 @@ export class GeofenceListComponent implements OnInit {
   private readonly userGeofenceService = inject(UserGeofenceService);
 
   readonly activeAreas = signal<string[]>([]);
+  readonly activeAreaSet = computed(() => new Set(this.activeAreas()));
   readonly availableAreas = signal<AreaDefinition[]>([]);
   readonly customGeofences = signal<UserGeofence[]>([]);
 
@@ -180,10 +181,6 @@ export class GeofenceListComponent implements OnInit {
     });
   }
 
-  isGeofenceActive(geofence: UserGeofence): boolean {
-    return this.activeAreas().includes(geofence.kojiName);
-  }
-
   ngOnInit(): void {
     this.loadActiveAreas();
     this.loadCustomGeofences();
@@ -281,7 +278,7 @@ export class GeofenceListComponent implements OnInit {
   }
 
   toggleGeofenceProfile(geofence: UserGeofence): void {
-    const active = this.isGeofenceActive(geofence);
+    const active = this.activeAreaSet().has(geofence.kojiName);
     const action$ = active
       ? this.userGeofenceService.deactivateGeofence(geofence.id)
       : this.userGeofenceService.activateGeofence(geofence.id);

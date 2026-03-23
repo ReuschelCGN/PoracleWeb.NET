@@ -188,7 +188,10 @@ public partial class UserGeofenceService(
             var areaName = geofence.Status == "approved" && geofence.PromotedName != null
                 ? geofence.PromotedName.ToLowerInvariant()
                 : geofence.KojiName;
-            await this.RemoveAreaFromAllProfilesAsync(geofence.HumanId, 1, areaName);
+            // Look up the owning user's actual current profile (not hardcoded to 1)
+            var owner = await this._humanRepository.GetByIdAsync(geofence.HumanId);
+            var ownerProfileNo = owner?.CurrentProfileNo ?? 1;
+            await this.RemoveAreaFromAllProfilesAsync(geofence.HumanId, ownerProfileNo, areaName);
         }
         catch (Exception ex)
         {
@@ -466,6 +469,10 @@ public partial class UserGeofenceService(
         await this._humanRepository.UpdateAsync(human);
     }
 
+    /// <summary>
+    /// Removes a geofence area name from humans.area (active profile) and all profiles.area entries.
+    /// Sequential DB updates per profile are acceptable here — users typically have 2-4 profiles.
+    /// </summary>
     private async Task RemoveAreaFromAllProfilesAsync(string humanId, int profileNo, string geofenceName)
     {
         var lowerName = geofenceName.ToLowerInvariant();
