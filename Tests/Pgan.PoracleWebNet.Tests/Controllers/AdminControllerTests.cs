@@ -12,9 +12,9 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class AdminControllerTests : ControllerTestBase
 {
     private readonly Mock<IHumanService> _humanService = new();
-    private readonly Mock<IPwebSettingService> _pwebSettingService = new();
     private readonly Mock<IPoracleApiProxy> _proxy = new();
     private readonly Mock<IPoracleServerService> _poracleServerService = new();
+    private readonly Mock<IWebhookDelegateService> _webhookDelegateService = new();
     private readonly Mock<ILogger<AdminController>> _logger = new();
     private readonly AdminController _sut;
 
@@ -28,7 +28,14 @@ public class AdminControllerTests : ControllerTestBase
             Audience = "test",
             ExpirationMinutes = 60
         });
-        this._sut = new AdminController(this._humanService.Object, this._pwebSettingService.Object, this._proxy.Object, this._poracleServerService.Object, poracleSettings, jwtSettings, this._logger.Object);
+        this._sut = new AdminController(
+            this._humanService.Object,
+            this._webhookDelegateService.Object,
+            this._proxy.Object,
+            this._poracleServerService.Object,
+            poracleSettings,
+            jwtSettings,
+            this._logger.Object);
     }
 
     // --- GetAllUsers ---
@@ -309,15 +316,15 @@ public class AdminControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetAllWebhookDelegatesReturnsFilteredSettings()
+    public async Task GetAllWebhookDelegatesReturnsGroupedDelegates()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._pwebSettingService.Setup(s => s.GetAllAsync()).ReturnsAsync(
-        [
-            new() { Setting = "webhook_delegates:wh1", Value = "u1,u2" },
-            new() { Setting = "webhook_delegates:wh2", Value = "u3" },
-            new() { Setting = "other_setting", Value = "ignored" }
-        ]);
+        this._webhookDelegateService.Setup(s => s.GetAllGroupedAsync()).ReturnsAsync(
+            new Dictionary<string, string[]>
+            {
+                ["wh1"] = ["u1", "u2"],
+                ["wh2"] = ["u3"]
+            });
 
         var result = await this._sut.GetAllWebhookDelegates();
         Assert.IsType<OkObjectResult>(result);
@@ -327,65 +334,25 @@ public class AdminControllerTests : ControllerTestBase
     public async Task AddWebhookDelegateAddsNewDelegate()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
-            .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1" });
-        this._pwebSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>()))
-            .ReturnsAsync(new PwebSetting());
+        this._webhookDelegateService.Setup(s => s.AddDelegateAsync("wh1", "u2"))
+            .ReturnsAsync(["u1", "u2"]);
 
         var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u2"));
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var delegates = Assert.IsType<string[]>(ok.Value);
-        Assert.Contains("u1", delegates);
-        Assert.Contains("u2", delegates);
+        Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task AddWebhookDelegateDoesNotDuplicate()
+    public async Task RemoveWebhookDelegateRemovesDelegate()
     {
         SetupUser(this._sut, isAdmin: true);
-        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
-            .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1" });
-
-        var result = await this._sut.AddWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var delegates = Assert.IsType<string[]>(ok.Value);
-        Assert.Single(delegates);
-    }
-
-    [Fact]
-    public async Task RemoveWebhookDelegateRemovesAndDeletesSettingWhenEmpty()
-    {
-        SetupUser(this._sut, isAdmin: true);
-        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
-            .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1" });
-        this._pwebSettingService.Setup(s => s.DeleteAsync("webhook_delegates:wh1")).ReturnsAsync(true);
+        this._webhookDelegateService.Setup(s => s.RemoveDelegateAsync("wh1", "u1"))
+            .ReturnsAsync([]);
 
         var result = await this._sut.RemoveWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var delegates = Assert.IsType<string[]>(ok.Value);
-        Assert.Empty(delegates);
-        this._pwebSettingService.Verify(s => s.DeleteAsync("webhook_delegates:wh1"), Times.Once);
-    }
-
-    [Fact]
-    public async Task RemoveWebhookDelegateUpdatesSettingWhenOthersRemain()
-    {
-        SetupUser(this._sut, isAdmin: true);
-        this._pwebSettingService.Setup(s => s.GetByKeyAsync("webhook_delegates:wh1"))
-            .ReturnsAsync(new PwebSetting { Setting = "webhook_delegates:wh1", Value = "u1,u2" });
-        this._pwebSettingService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>()))
-            .ReturnsAsync(new PwebSetting());
-
-        var result = await this._sut.RemoveWebhookDelegate(new AdminController.WebhookDelegateRequest("wh1", "u1"));
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var delegates = Assert.IsType<string[]>(ok.Value);
-        Assert.Single(delegates);
-        Assert.Equal("u2", delegates[0]);
-        this._pwebSettingService.Verify(s => s.CreateOrUpdateAsync(It.Is<PwebSetting>(s => s.Value == "u2")), Times.Once);
+        Assert.IsType<OkObjectResult>(result);
+        this._webhookDelegateService.Verify(s => s.RemoveDelegateAsync("wh1", "u1"), Times.Once);
     }
 
     // --- GetPoracleAdmins ---
@@ -417,7 +384,6 @@ public class AdminControllerTests : ControllerTestBase
         this._proxy.Setup(p => p.GetConfigAsync()).ThrowsAsync(new InvalidOperationException("fail"));
 
         var result = await this._sut.GetPoracleAdmins();
-        // Should still return OK with just configured admin IDs
         Assert.IsType<OkObjectResult>(result);
     }
 

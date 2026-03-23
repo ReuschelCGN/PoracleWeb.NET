@@ -8,16 +8,16 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 
 public class SettingsControllerTests : ControllerTestBase
 {
-    private readonly Mock<IPwebSettingService> _service = new();
+    private readonly Mock<ISiteSettingService> _siteService = new();
     private readonly SettingsController _sut;
 
-    public SettingsControllerTests() => this._sut = new SettingsController(this._service.Object);
+    public SettingsControllerTests() => this._sut = new SettingsController(this._siteService.Object);
 
     [Fact]
     public async Task GetAllReturnsOk()
     {
         SetupUser(this._sut);
-        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Setting = "k", Value = "v" }]);
+        this._siteService.Setup(s => s.GetAllAsync()).ReturnsAsync([new() { Key = "k", Value = "v" }]);
         Assert.IsType<OkObjectResult>(await this._sut.GetAll());
     }
 
@@ -25,20 +25,19 @@ public class SettingsControllerTests : ControllerTestBase
     public async Task UpsertReturnsOkWhenAdmin()
     {
         SetupUser(this._sut, isAdmin: true);
-        var setting = new PwebSetting { Value = "val" };
-        this._service.Setup(s => s.CreateOrUpdateAsync(It.IsAny<PwebSetting>())).ReturnsAsync(setting);
+        var request = new SettingsController.SiteSettingRequest { Value = "val", Category = "branding" };
+        this._siteService.Setup(s => s.CreateOrUpdateAsync(It.IsAny<SiteSetting>())).ReturnsAsync(new SiteSetting { Key = "key1", Value = "val" });
 
-        var result = await this._sut.Upsert("key1", setting);
+        var result = await this._sut.Upsert("key1", request);
 
         Assert.IsType<OkObjectResult>(result);
-        Assert.Equal("key1", setting.Setting);
     }
 
     [Fact]
     public async Task UpsertReturnsForbidWhenNotAdmin()
     {
         SetupUser(this._sut, isAdmin: false);
-        var result = await this._sut.Upsert("key1", new PwebSetting());
+        var result = await this._sut.Upsert("key1", new SettingsController.SiteSettingRequest());
         Assert.IsType<ForbidResult>(result);
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
+using Pgan.PoracleWebNet.Core.Abstractions.Repositories;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
 using Pgan.PoracleWebNet.Core.Models;
 using Pgan.PoracleWebNet.Core.Services;
@@ -8,7 +9,8 @@ namespace Pgan.PoracleWebNet.Tests.Services;
 
 public class QuickPickServiceSecurityTests
 {
-    private readonly Mock<IPwebSettingService> _settingService = new();
+    private readonly Mock<IQuickPickDefinitionRepository> _definitionRepository = new();
+    private readonly Mock<IQuickPickAppliedStateRepository> _appliedStateRepository = new();
     private readonly Mock<IMonsterService> _monsterService = new();
     private readonly Mock<IRaidService> _raidService = new();
     private readonly Mock<IEggService> _eggService = new();
@@ -22,7 +24,8 @@ public class QuickPickServiceSecurityTests
     private readonly QuickPickService _sut;
 
     public QuickPickServiceSecurityTests() => this._sut = new QuickPickService(
-            this._settingService.Object,
+            this._definitionRepository.Object,
+            this._appliedStateRepository.Object,
             this._monsterService.Object,
             this._raidService.Object,
             this._eggService.Object,
@@ -50,9 +53,8 @@ public class QuickPickServiceSecurityTests
                 ["minIv"] = 90,
             },
         };
-        var definitionJson = System.Text.Json.JsonSerializer.Serialize(definition);
-        this._settingService.Setup(s => s.GetByKeyAsync("quick_pick:" + definition.Id))
-            .ReturnsAsync(new PwebSetting { Setting = "quick_pick:" + definition.Id, Value = definitionJson });
+        this._definitionRepository.Setup(r => r.GetByIdAsync(definition.Id))
+            .ReturnsAsync(definition);
 
         Monster? capturedMonster = null;
         this._monsterService.Setup(s => s.CreateAsync("real_user", It.IsAny<Monster>()))

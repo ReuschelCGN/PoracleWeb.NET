@@ -24,15 +24,21 @@ Pgan.PoracleWebNet.slnx
 |   +-- Core.Abstractions/       Interfaces: IRepository, IService, IUnitOfWork
 |   +-- Core.Models/             DTOs passed between layers (not EF entities)
 |   +-- Core.Mappings/           AutoMapper PoracleMappingProfile
-|   +-- Core.Repositories/       BaseRepository<TEntity, TModel> implementations
+|   +-- Core.Repositories/       BaseRepository<TEntity, TModel> implementations,
+|   |                            SiteSettingRepository, WebhookDelegateRepository,
+|   |                            QuickPickDefinitionRepository, QuickPickAppliedStateRepository
 |   +-- Core.Services/           Business logic (MonsterService, DashboardService,
-|   |                            UserGeofenceService, KojiService,
+|   |                            UserGeofenceService, KojiService, SiteSettingService,
+|   |                            WebhookDelegateService, QuickPickService,
 |   |                            DiscordNotificationService, PoracleServerService, etc.)
 |   +-- Core.UnitsOfWork/        PoracleUnitOfWork wrapping DbContext.SaveChangesAsync()
 |
 +-- Data/
 |   +-- Data/                    PoracleContext (EF Core), PoracleWebContext (app-owned DB),
-|   |                            Entities/ (incl. UserGeofenceEntity), Configurations/
+|   |                            Entities/ (incl. UserGeofenceEntity, SiteSettingEntity,
+|   |                            WebhookDelegateEntity, QuickPickDefinitionEntity,
+|   |                            QuickPickAppliedStateEntity),
+|   |                            Configurations/ (EF Core entity type configurations)
 |   +-- Data.Scanner/            RdmScannerContext for optional scanner DB
 |
 +-- Applications/
@@ -41,7 +47,8 @@ Pgan.PoracleWebNet.slnx
 |   |   |                        incl. UserGeofenceController, AdminGeofenceController,
 |   |   |                        GeofenceFeedController
 |   |   +-- Configuration/       DI registration, JwtSettings, DiscordSettings, KojiSettings, etc.
-|   |   +-- Services/            Background services: AvatarCacheService, DtsCacheService
+|   |   +-- Services/            Background services: AvatarCacheService, DtsCacheService,
+|   |                            SettingsMigrationStartupService
 |   +-- Web.App/
 |       +-- ClientApp/           Angular 21 SPA
 |           +-- src/app/
@@ -78,6 +85,13 @@ Pgan.PoracleWebNet.slnx
   - `PUT /{uid}` -- Update a single alarm (full object)
   - `PUT /distance` -- Update ALL alarms' distance for the current user/profile
   - `PUT /distance/bulk` -- Update distance for specific UIDs: `{ uids: number[], distance: number }`. This does a targeted `SetDistance()` on matching entities, bypassing AutoMapper entirely -- safe for bulk operations.
+
+### Settings Architecture
+- Site settings are stored in typed columns in `poracle_web.site_settings` with categories (branding, features, alarms, admin, etc.) and typed values.
+- **Deprecated**: The `pweb_settings` KV store in the Poracle DB (`PwebSettingEntity` / `IPwebSettingService`) is deprecated. Settings, webhook delegates, and quick picks previously stored as key-prefixed JSON blobs in `pweb_settings` are migrated to dedicated structured tables in the `poracle_web` database.
+- Webhook delegation uses the `poracle_web.webhook_delegates` relational table with a composite unique constraint (user + webhook), replacing the old `webhook_delegates:` key prefix pattern in `pweb_settings`.
+- Quick pick definitions use `poracle_web.quick_pick_definitions` with JSON columns for filter definitions. Applied state is tracked in `poracle_web.quick_pick_applied_states` per user/profile, replacing the old `quick_pick:`, `user_quick_pick:`, and `qp_applied:` key prefix patterns.
+- On first startup after upgrade, `SettingsMigrationStartupService` automatically migrates data from `pweb_settings` to the structured tables. This is idempotent and safe to run multiple times.
 
 ### Poracle API Proxy
 - `IPoracleApiProxy` / `PoracleApiProxy` wraps HttpClient calls to the external Poracle REST API.
@@ -121,7 +135,12 @@ Pgan.PoracleWebNet.slnx
 - Second `DbContext`: `PoracleWebContext` using `ConnectionStrings:PoracleWebDb`.
 - Separate `poracle_web` MariaDB/MySQL database for application-owned data (not managed by PoracleJS).
 - Does **not** modify the Poracle DB schema -- the Poracle database remains exclusively managed by PoracleJS.
-- Currently stores: `user_geofences` table.
+- Tables:
+  - `user_geofences` -- user-drawn custom geofence polygons.
+  - `site_settings` -- typed admin-configurable settings with categories (replaces `pweb_settings` KV store).
+  - `webhook_delegates` -- relational user-to-webhook delegation mappings with composite unique constraint.
+  - `quick_pick_definitions` -- structured quick pick alarm presets (global and user-scoped) with JSON filter columns.
+  - `quick_pick_applied_states` -- tracks which quick picks users have applied per profile, with tracked alarm UIDs.
 - Uses EF Core `EnsureCreated()` or migrations for schema management.
 
 ### Profiles
@@ -160,10 +179,11 @@ Pgan.PoracleWebNet.slnx
 
 - **Secrets**: `appsettings.Development.json` (gitignored) holds all connection strings, JWT secret, Discord/Telegram credentials, Poracle API address/secret.
 - **Docker**: Environment variables configured in `.env` file, mapped in `docker-compose.yml`.
-- **Poracle API**: Address comes from `pweb_settings` table or `appsettings.json` `Poracle:ApiAddress`.
+- **Poracle API**: Address comes from `appsettings.json` `Poracle:ApiAddress`. (**Deprecated**: previously also read from the `pweb_settings` table in the Poracle DB; now stored in `poracle_web.site_settings`.)
+- **Site Settings**: Admin-configurable settings (custom title, feature flags, etc.) are stored in `poracle_web.site_settings`. On first startup after upgrade, `SettingsMigrationStartupService` migrates any existing data from the deprecated `pweb_settings` table automatically.
 - **Discord Bot Token**: Sourced from PoracleJS server's `config/local-discord.json`.
 - **Admin IDs**: Comma-separated Discord user IDs in `Poracle:AdminIds`.
-- **PoracleWeb DB**: `ConnectionStrings:PoracleWebDb` -- connection string for the `poracle_web` database (user geofences and app-owned data).
+- **PoracleWeb DB**: `ConnectionStrings:PoracleWebDb` -- connection string for the `poracle_web` database (user geofences, site settings, webhook delegates, quick picks).
 - **Koji Geofence API**:
   - `Koji:ApiAddress` -- Koji geofence server URL (e.g., `http://localhost:8080`).
   - `Koji:BearerToken` -- Koji API authentication token.
@@ -203,6 +223,9 @@ Poracle does **case-sensitive** area matching. Geofence names stored in `humans.
 
 ### Koji displayInMatches Limitation
 Koji's `displayInMatches` custom property is not reliably honored by all Poracle format serializers. To ensure user geofence names are hidden from DMs, serve user geofences from the PoracleWeb feed endpoint (`/api/geofence-feed`) instead of pushing them to Koji. Only promote to Koji when an admin approves a geofence for public use.
+
+### Settings Migration
+On first startup after upgrade, the `SettingsMigrationStartupService` automatically migrates data from the deprecated `pweb_settings` KV store (in the Poracle DB) to structured tables in the `poracle_web` database (`site_settings`, `webhook_delegates`, `quick_pick_definitions`, `quick_pick_applied_states`). This is idempotent -- safe to run multiple times. If migration fails, the app continues with existing data and logs the error. The old `pweb_settings` table is not deleted; it remains read-only as a fallback until fully decommissioned.
 
 ## Build & Run
 
@@ -258,12 +281,19 @@ docker compose up -d --force-recreate
 | EF Core DbContext (Poracle) | `Data/Pgan.PoracleWebNet.Data/PoracleContext.cs` |
 | EF Core DbContext (PoracleWeb) | `Data/Pgan.PoracleWebNet.Data/PoracleWebContext.cs` |
 | User Geofence Entity | `Data/Pgan.PoracleWebNet.Data/Entities/UserGeofenceEntity.cs` |
+| Site Setting Entity | `Data/Pgan.PoracleWebNet.Data/Entities/SiteSettingEntity.cs` |
+| Webhook Delegate Entity | `Data/Pgan.PoracleWebNet.Data/Entities/WebhookDelegateEntity.cs` |
+| Quick Pick Definition Entity | `Data/Pgan.PoracleWebNet.Data/Entities/QuickPickDefinitionEntity.cs` |
+| Quick Pick Applied State Entity | `Data/Pgan.PoracleWebNet.Data/Entities/QuickPickAppliedStateEntity.cs` |
+| PwebSetting Entity (deprecated) | `Data/Pgan.PoracleWebNet.Data/Entities/PwebSettingEntity.cs` |
+| Entity Configurations | `Data/Pgan.PoracleWebNet.Data/Configurations/` |
 | API Controllers | `Applications/Pgan.PoracleWebNet.Api/Controllers/` |
 | Geofence Feed Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/GeofenceFeedController.cs` |
 | Admin Geofence Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/AdminGeofenceController.cs` |
 | User Geofence Controller | `Applications/Pgan.PoracleWebNet.Api/Controllers/UserGeofenceController.cs` |
 | DI Registration | `Applications/Pgan.PoracleWebNet.Api/Configuration/ServiceCollectionExtensions.cs` |
 | Settings Classes | `Applications/Pgan.PoracleWebNet.Api/Configuration/` (JwtSettings, DiscordSettings, KojiSettings, PoracleServerSettings, etc.) |
+| Settings Migration Service | `Applications/Pgan.PoracleWebNet.Api/Services/SettingsMigrationStartupService.cs` |
 | Angular App Root | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/` |
 | Angular Routes | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/app.routes.ts` |
 | Angular Services | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/` |
@@ -278,11 +308,20 @@ docker compose up -d --force-recreate
 | Geo Utilities | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/utils/geo.utils.ts` |
 | AutoMapper Profile | `Core/Pgan.PoracleWebNet.Core.Mappings/PoracleMappingProfile.cs` |
 | Repository Base | `Core/Pgan.PoracleWebNet.Core.Repositories/` |
+| SiteSettingRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/SiteSettingRepository.cs` |
+| WebhookDelegateRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/WebhookDelegateRepository.cs` |
+| QuickPickDefinitionRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/QuickPickDefinitionRepository.cs` |
+| QuickPickAppliedStateRepository | `Core/Pgan.PoracleWebNet.Core.Repositories/QuickPickAppliedStateRepository.cs` |
 | Service Layer | `Core/Pgan.PoracleWebNet.Core.Services/` |
 | UserGeofenceService | `Core/Pgan.PoracleWebNet.Core.Services/UserGeofenceService.cs` |
+| SiteSettingService | `Core/Pgan.PoracleWebNet.Core.Services/SiteSettingService.cs` |
+| WebhookDelegateService | `Core/Pgan.PoracleWebNet.Core.Services/WebhookDelegateService.cs` |
+| QuickPickService | `Core/Pgan.PoracleWebNet.Core.Services/QuickPickService.cs` |
+| PwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Services/PwebSettingService.cs` |
 | KojiService | `Core/Pgan.PoracleWebNet.Core.Services/KojiService.cs` |
 | DiscordNotificationService | `Core/Pgan.PoracleWebNet.Core.Services/DiscordNotificationService.cs` |
 | IPoracleServerService | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/` |
+| IPwebSettingService (deprecated) | `Core/Pgan.PoracleWebNet.Core.Abstractions/Services/IPwebSettingService.cs` |
 | PoracleServerService | `Core/Pgan.PoracleWebNet.Core.Services/PoracleServerService.cs` |
 | Poracle Servers Page | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/modules/admin/poracle-servers/` |
 | Abstractions | `Core/Pgan.PoracleWebNet.Core.Abstractions/` |
@@ -293,5 +332,5 @@ docker compose up -d --force-recreate
 ## Testing
 
 - **Frontend**: Jest with jest-preset-angular. Run with `npm test` from `ClientApp/`. Tests cover services, pipes, components, dialogs, and utilities (including `geo.utils.spec.ts`, `user-geofence.service.spec.ts`, `admin-geofence.service.spec.ts`, `region-selector.component.spec.ts`, `geofence-name-dialog.component.spec.ts`, `geofence-approval-dialog.component.spec.ts`).
-- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings (including `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`).
+- **Backend**: xUnit with Moq. Run with `dotnet test` from solution root. Tests cover controllers, services, and AutoMapper mappings (including `UserGeofenceControllerTests`, `AdminGeofenceControllerTests`, `GeofenceFeedControllerTests`, `UserGeofenceServiceTests`, `SettingsControllerTests`, `AdminControllerTests`, `PwebSettingServiceTests`, `QuickPickServiceSecurityTests`).
 - **CI**: Both test suites run automatically on push/PR to main via GitHub Actions.

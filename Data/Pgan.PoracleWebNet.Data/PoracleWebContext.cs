@@ -9,4 +9,30 @@ public class PoracleWebContext(DbContextOptions<PoracleWebContext> options) : Db
     {
         get; set;
     }
+
+    public DbSet<SiteSettingEntity> SiteSettings
+    {
+        get; set;
+    }
+
+    public DbSet<WebhookDelegateEntity> WebhookDelegates
+    {
+        get; set;
+    }
+
+    public DbSet<QuickPickDefinitionEntity> QuickPickDefinitions
+    {
+        get; set;
+    }
+
+    public DbSet<QuickPickAppliedStateEntity> QuickPickAppliedStates
+    {
+        get; set;
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(PoracleWebContext).Assembly);
+    }
 }

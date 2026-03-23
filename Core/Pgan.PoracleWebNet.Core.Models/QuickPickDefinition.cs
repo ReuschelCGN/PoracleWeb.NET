@@ -2,7 +2,6 @@ namespace Pgan.PoracleWebNet.Core.Models;
 
 /// <summary>
 /// A reusable alarm preset that can be applied to create tracking entries.
-/// Stored as JSON in pweb_settings.
 /// </summary>
 public class QuickPickDefinition
 {
@@ -22,6 +21,11 @@ public class QuickPickDefinition
     /// Scope: "global" for admin-defined, "user" for user-defined.
     /// </summary>
     public string Scope { get; set; } = "global";
+
+    /// <summary>
+    /// The Discord/Telegram user ID that owns this definition. Null for global (admin) picks.
+    /// </summary>
+    public string? OwnerUserId { get; set; }
 
     /// <summary>
     /// The alarm filter parameters as a flexible dictionary.

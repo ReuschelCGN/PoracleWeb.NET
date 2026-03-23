@@ -3,7 +3,10 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
 import { ConfigService } from './config.service';
-import { PoracleConfig, PwebSetting } from '../models';
+import { PoracleConfig, PwebSetting, SiteSetting } from '../models';
+
+/** Union of old and new setting response shapes */
+type AnySettingItem = PwebSetting | SiteSetting;
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
@@ -14,13 +17,11 @@ export class SettingsService {
   /** Cached site settings as key→value map, loaded once at app init */
   readonly siteSettings = signal<Record<string, string>>({});
 
-  getAll(): Observable<PwebSetting[]> {
-    return this.http.get<PwebSetting[]>(`${this.config.apiHost}/api/settings`).pipe(
+  getAll(): Observable<AnySettingItem[]> {
+    return this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings`).pipe(
       tap(settings => {
         if (!this.loaded) {
-          const map: Record<string, string> = {};
-          for (const s of settings) if (s.setting) map[s.setting] = s.value ?? '';
-          this.siteSettings.set(map);
+          this.siteSettings.set(this.normalize(settings));
           this.loaded = true;
         }
       }),
@@ -31,13 +32,13 @@ export class SettingsService {
     return this.http.get<PoracleConfig>(`${this.config.apiHost}/api/settings/config`);
   }
 
-  /** Returns true if a feature is disabled via pweb_settings */
+  /** Returns true if a feature is disabled via site settings */
   isDisabled(key: string): boolean {
     return this.siteSettings()[key]?.toLowerCase() === 'true';
   }
 
   /** Load settings once (idempotent) */
-  loadOnce(): Observable<PwebSetting[]> {
+  loadOnce(): Observable<AnySettingItem[]> {
     if (this.loaded)
       return new Observable(sub => {
         sub.next([]);
@@ -47,20 +48,29 @@ export class SettingsService {
   }
 
   /** Load public settings (no auth required) — safe to call from login page */
-  loadPublic(): Observable<PwebSetting[]> {
-    return this.http.get<PwebSetting[]>(`${this.config.apiHost}/api/settings/public`).pipe(
+  loadPublic(): Observable<AnySettingItem[]> {
+    return this.http.get<AnySettingItem[]>(`${this.config.apiHost}/api/settings/public`).pipe(
       tap(settings => {
         const current = this.siteSettings();
-        const map: Record<string, string> = { ...current };
-        for (const s of settings) if (s.setting) map[s.setting] = s.value ?? '';
+        const map: Record<string, string> = { ...current, ...this.normalize(settings) };
         this.siteSettings.set(map);
       }),
     );
   }
 
-  update(key: string, value: string): Observable<PwebSetting> {
-    return this.http.put<PwebSetting>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
-      setting: key,
+  /** Normalize a mixed array of PwebSetting / SiteSetting into a key→value map */
+  normalize(items: AnySettingItem[]): Record<string, string> {
+    const map: Record<string, string> = {};
+    for (const item of items) {
+      const key = 'key' in item ? item.key : item.setting;
+      if (key) map[key] = item.value ?? '';
+    }
+    return map;
+  }
+
+  update(key: string, value: string): Observable<AnySettingItem> {
+    return this.http.put<AnySettingItem>(`${this.config.apiHost}/api/settings/${encodeURIComponent(key)}`, {
+      key,
       value,
     });
   }
