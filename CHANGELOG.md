@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Hide internal settings from admin UI and document all site settings ([PR #45](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/45))
+
 ### Added
 - add size filter to Pokemon alarm dialogs ([PR #43](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/43))
 - **Admin geofence detail view**: enriched admin geofence management page with owner display names, avatar URLs, interactive Leaflet map detail dialog, lazy-loaded map thumbnails, point count, area calculation (m²/km²), reference geofences from Poracle areas, and skeleton loading ([#42](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/42), [PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
