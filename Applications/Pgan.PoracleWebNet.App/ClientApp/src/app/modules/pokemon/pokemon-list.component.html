@@ -194,39 +194,7 @@
               }}</span>
             }
             @if (monster.size > 0 || monster.maxSize < 5) {
-              <span class="filter-pill size-pill">{{
-                monster.size === monster.maxSize
-                  ? monster.size === 1
-                    ? 'XXS'
-                    : monster.size === 2
-                      ? 'XS'
-                      : monster.size === 3
-                        ? 'Normal'
-                        : monster.size === 4
-                          ? 'XL'
-                          : 'XXL'
-                  : (monster.size === 1
-                      ? 'XXS'
-                      : monster.size === 2
-                        ? 'XS'
-                        : monster.size === 3
-                          ? 'Normal'
-                          : monster.size === 4
-                            ? 'XL'
-                            : monster.size === 5
-                              ? 'XXL'
-                              : 'Any') +
-                    '-' +
-                    (monster.maxSize === 1
-                      ? 'XXS'
-                      : monster.maxSize === 2
-                        ? 'XS'
-                        : monster.maxSize === 3
-                          ? 'Normal'
-                          : monster.maxSize === 4
-                            ? 'XL'
-                            : 'XXL')
-              }}</span>
+              <span class="filter-pill size-pill">{{ getSizePillText(monster) }}</span>
             }
           </div>
           <div class="distance-chip-row">
