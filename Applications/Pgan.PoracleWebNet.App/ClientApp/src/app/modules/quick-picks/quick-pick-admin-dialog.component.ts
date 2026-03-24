@@ -84,7 +84,7 @@ export class QuickPickAdminDialogComponent implements OnInit {
     gender: [0],
     maxCp: [9000],
     maxIv: [100],
-    maxLevel: [40],
+    maxLevel: [55],
     maxSize: [5],
     maxWeight: [9000000],
     minCp: [0],
@@ -96,7 +96,7 @@ export class QuickPickAdminDialogComponent implements OnInit {
     pvpRankingLeague: [0],
     pvpRankingMinCp: [0],
     pvpRankingWorst: [100],
-    size: [0],
+    size: [-1],
   });
 
   nestForm = this.fb.group({

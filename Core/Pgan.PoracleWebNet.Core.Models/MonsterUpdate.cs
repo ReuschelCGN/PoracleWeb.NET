@@ -130,7 +130,7 @@ public class MonsterUpdate
         get; set;
     }
 
-    [Range(0, 5)]
+    [Range(-1, 5)]
     public int? Size
     {
         get; set;
