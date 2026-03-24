@@ -51,10 +51,16 @@ public class GymEntity
     }
 
     [Column("battle_changes")]
-    public int BattleChanges { get; set; }
+    public int BattleChanges
+    {
+        get; set;
+    }
 
     [Column("gym_id")]
-    public string? GymId { get; set; }
+    public string? GymId
+    {
+        get; set;
+    }
 
     [Column("profile_no")]
     public int ProfileNo { get; set; } = 1;

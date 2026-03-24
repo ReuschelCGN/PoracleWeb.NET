@@ -41,11 +41,20 @@ public class EggUpdate
     }
 
     [Range(0, 1)]
-    public int? Exclusive { get; set; }
+    public int? Exclusive
+    {
+        get; set;
+    }
 
     [StringLength(255)]
-    public string? GymId { get; set; }
+    public string? GymId
+    {
+        get; set;
+    }
 
     [Range(0, 1)]
-    public int? RsvpChanges { get; set; }
+    public int? RsvpChanges
+    {
+        get; set;
+    }
 }

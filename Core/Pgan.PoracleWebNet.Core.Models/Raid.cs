@@ -38,9 +38,18 @@ public class Raid
     }
     public int Move { get; set; } = 9000;
     public int Evolution { get; set; } = 9000;
-    public int Exclusive { get; set; }
-    public string? GymId { get; set; }
-    public int RsvpChanges { get; set; }
+    public int Exclusive
+    {
+        get; set;
+    }
+    public string? GymId
+    {
+        get; set;
+    }
+    public int RsvpChanges
+    {
+        get; set;
+    }
     public int ProfileNo
     {
         get; set;

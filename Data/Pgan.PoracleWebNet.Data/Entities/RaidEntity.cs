@@ -66,13 +66,22 @@ public class RaidEntity
     public int Evolution { get; set; } = 9000;
 
     [Column("exclusive")]
-    public int Exclusive { get; set; }
+    public int Exclusive
+    {
+        get; set;
+    }
 
     [Column("gym_id")]
-    public string? GymId { get; set; }
+    public string? GymId
+    {
+        get; set;
+    }
 
     [Column("rsvp_changes")]
-    public int RsvpChanges { get; set; }
+    public int RsvpChanges
+    {
+        get; set;
+    }
 
     [Column("profile_no")]
     public int ProfileNo { get; set; } = 1;

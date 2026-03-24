@@ -41,8 +41,14 @@ public class GymUpdate
     }
 
     [Range(0, 1)]
-    public int? BattleChanges { get; set; }
+    public int? BattleChanges
+    {
+        get; set;
+    }
 
     [StringLength(255)]
-    public string? GymId { get; set; }
+    public string? GymId
+    {
+        get; set;
+    }
 }

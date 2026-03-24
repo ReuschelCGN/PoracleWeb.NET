@@ -16,7 +16,10 @@ public class InvasionService(IInvasionRepository repository) : IInvasionService
     {
         model.Id = userId;
         if (model.GruntType != null)
+        {
             model.GruntType = model.GruntType.ToLowerInvariant();
+        }
+
         return await this._repository.CreateAsync(model);
     }
 
@@ -38,7 +41,9 @@ public class InvasionService(IInvasionRepository repository) : IInvasionService
         {
             model.Id = userId;
             if (model.GruntType != null)
+            {
                 model.GruntType = model.GruntType.ToLowerInvariant();
+            }
         }
 
         return await this._repository.BulkCreateAsync(models);
