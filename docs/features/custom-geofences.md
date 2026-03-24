@@ -82,6 +82,26 @@ stateDiagram-v2
     note right of Approved : Public — all users\ncan select it on\nthe Areas page.
 ```
 
+## Admin geofence management
+
+Admins can view and manage all user-created geofences from the **Geofence Management** page (`/admin/geofence-submissions`).
+
+### Features
+
+- **Owner display names** — Resolves Discord/Telegram usernames from the Poracle `humans` table instead of showing raw user IDs
+- **Map thumbnails** — Each geofence card shows a non-interactive Leaflet map preview with the polygon rendered in its status color. Thumbnails are lazy-loaded via `IntersectionObserver` for performance
+- **Detail dialog** — Click a card's map thumbnail or View button to open an interactive Leaflet map dialog with:
+    - Full summary panel (name, owner, group, status, point count, area in km²/m², dates, review notes)
+    - Interactive pan/zoom map with the polygon auto-fitted to bounds
+    - Reference geofences from Poracle areas shown as dashed colored outlines (same palette as the Areas page) with name tooltips on hover
+- **Point count and area** — Each geofence shows its vertex count and computed area (m² for areas under 1 km², km² otherwise) using the spherical excess formula
+- **Status filtering** — Filter tabs for All, Pending, Active, Approved, and Rejected with counts
+- **Skeleton loading** — Animated skeleton cards with map placeholders during data fetch
+
+### Owner resolution
+
+Owner names are resolved via a batch lookup against the Poracle `humans` table. Avatars are served from `AvatarCacheService` with Discord CDN default fallback. The lookup is efficient — distinct owner IDs are collected and fetched in one pass.
+
 ## Geofence statuses
 
 | Status | Description |

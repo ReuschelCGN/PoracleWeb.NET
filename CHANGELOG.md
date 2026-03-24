@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-
 ### Added
 - add size filter to Pokemon alarm dialogs ([PR #43](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/43))
+- **Admin geofence detail view**: enriched admin geofence management page with owner display names, avatar URLs, interactive Leaflet map detail dialog, lazy-loaded map thumbnails, point count, area calculation (m²/km²), reference geofences from Poracle areas, and skeleton loading ([#42](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/42), [PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
+
+### Changed
+- extract `GetDefaultAvatarUrl` to shared `AvatarCacheService.GetAvatarOrDefault()` static method, removing duplication from `AdminController` and `AdminGeofenceController` ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
+- extract `GEOFENCE_STATUS_COLORS` to shared `geofence.utils.ts` constant ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 ## [0.6.1] - 2026-03-23
 
 ## [0.6.1] - 2026-03-23
