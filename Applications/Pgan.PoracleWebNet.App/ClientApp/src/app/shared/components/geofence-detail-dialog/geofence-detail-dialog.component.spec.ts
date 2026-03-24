@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { of } from 'rxjs';
 
 import { GeofenceDetailDialogComponent, GeofenceDetailDialogData } from './geofence-detail-dialog.component';
 import { UserGeofence } from '../../../core/models';
@@ -8,11 +9,13 @@ import { UserGeofence } from '../../../core/models';
 jest.mock('leaflet', () => ({
   map: jest.fn(() => ({
     fitBounds: jest.fn(),
+    invalidateSize: jest.fn(),
     remove: jest.fn(),
     setView: jest.fn().mockReturnThis(),
   })),
   polygon: jest.fn(() => ({
     addTo: jest.fn(),
+    bindTooltip: jest.fn().mockReturnThis(),
     getBounds: jest.fn(),
   })),
   tileLayer: jest.fn(() => ({
@@ -22,7 +25,7 @@ jest.mock('leaflet', () => ({
 
 describe('GeofenceDetailDialogComponent', () => {
   let component: GeofenceDetailDialogComponent;
-  let dialogRef: { close: jest.Mock };
+  let dialogRef: { afterOpened: jest.Mock; close: jest.Mock };
 
   const mockGeofence: UserGeofence = {
     id: 1,
@@ -46,7 +49,7 @@ describe('GeofenceDetailDialogComponent', () => {
   };
 
   function setup(geofenceOverrides?: Partial<UserGeofence>) {
-    dialogRef = { close: jest.fn() };
+    dialogRef = { afterOpened: jest.fn().mockReturnValue(of(undefined)), close: jest.fn() };
 
     const geofence = { ...mockGeofence, ...geofenceOverrides };
 

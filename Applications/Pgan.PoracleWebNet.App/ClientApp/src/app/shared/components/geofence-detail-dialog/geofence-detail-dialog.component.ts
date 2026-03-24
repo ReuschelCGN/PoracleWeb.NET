@@ -42,21 +42,32 @@ export interface GeofenceDetailDialogData {
   templateUrl: './geofence-detail-dialog.component.html',
 })
 export class GeofenceDetailDialogComponent implements OnDestroy {
-  private map: L.Map | null = null;
-
-  readonly data = inject<GeofenceDetailDialogData>(MAT_DIALOG_DATA);
   private readonly dialogRef = inject(MatDialogRef<GeofenceDetailDialogComponent>);
+
+  private map: L.Map | null = null;
+  readonly data = inject<GeofenceDetailDialogData>(MAT_DIALOG_DATA);
 
   @ViewChild('detailMap', { static: true }) mapElement!: ElementRef<HTMLDivElement>;
 
-  get geofence(): UserGeofence {
-    return this.data.geofence;
+  constructor() {
+    // Init map only after dialog open animation completes and container has final dimensions
+    this.dialogRef.afterOpened().subscribe(() => {
+      this.initMap();
+    });
   }
 
-  get areaSqKm(): string {
-    if (!this.geofence.polygon || this.geofence.polygon.length < 3) return '0';
-    const area = polygonAreaSqKm(this.geofence.polygon as [number, number][]);
-    return area < 0.01 ? area.toFixed(4) : area < 1 ? area.toFixed(3) : area.toFixed(2);
+  get areaDisplay(): string {
+    if (!this.geofence.polygon || this.geofence.polygon.length < 3) return '0 m²';
+    const sqKm = polygonAreaSqKm(this.geofence.polygon as [number, number][]);
+    if (sqKm < 1) {
+      const sqM = Math.round(sqKm * 1_000_000);
+      return `${sqM.toLocaleString()} m²`;
+    }
+    return `${sqKm.toFixed(2)} km²`;
+  }
+
+  get geofence(): UserGeofence {
+    return this.data.geofence;
   }
 
   get pointCount(): number {
@@ -80,13 +91,6 @@ export class GeofenceDetailDialogComponent implements OnDestroy {
       default:
         return this.geofence.status;
     }
-  }
-
-  constructor() {
-    // Init map only after dialog open animation completes and container has final dimensions
-    this.dialogRef.afterOpened().subscribe(() => {
-      this.initMap();
-    });
   }
 
   ngOnDestroy(): void {

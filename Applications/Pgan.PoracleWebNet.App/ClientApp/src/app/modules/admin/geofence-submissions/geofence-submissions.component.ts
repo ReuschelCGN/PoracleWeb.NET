@@ -138,11 +138,11 @@ export class GeofenceSubmissionsComponent implements OnInit, AfterViewInit, OnDe
 
   openDetailDialog(geofence: UserGeofence): void {
     this.dialog.open(GeofenceDetailDialogComponent, {
-      maxHeight: '90vh',
       maxWidth: '90vw',
-      panelClass: 'geofence-detail-dialog-panel',
       width: '720px',
       data: { geofence, referenceGeofences: this.referenceGeofences() },
+      maxHeight: '90vh',
+      panelClass: 'geofence-detail-dialog-panel',
     });
   }
 
