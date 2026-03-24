@@ -75,7 +75,7 @@ export class PokemonAddDialogComponent {
     maxWeight: [9000000],
     minCp: [0, [Validators.min(0), Validators.max(9000)]],
     minIv: [0, [Validators.min(0), Validators.max(100)]],
-    minLevel: [0, [Validators.min(0), Validators.max(50)]],
+    minLevel: [0, [Validators.min(0), Validators.max(55)]],
     minWeight: [0],
     size: [-1],
     sta: [0, [Validators.min(0), Validators.max(15)]],
