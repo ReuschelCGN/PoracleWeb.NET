@@ -79,6 +79,13 @@ Pgan.PoracleWebNet.slnx
 - All `*Update` models (MonsterUpdate, RaidUpdate, etc.) use **nullable `int?`** properties so partial updates don't zero out unset fields.
 - The mapping profile uses `.ForAllMembers(opts => opts.Condition((_, _, srcMember) => srcMember != null))` to skip null properties.
 - **Important**: When calling the PUT `/{uid}` endpoint from the frontend, always spread the full alarm object (`{ ...alarm, distance }`) rather than sending a partial `{ distance }`. This ensures existing values like `clean`, `template`, and filter settings are preserved.
+- **Create model defaults**: `*Create` models must also declare defaults that match the PHP PoracleWeb / Poracle entity defaults. C# `int` defaults to `0`, which is wrong for most filter fields. Key monster defaults: `Size = -1`, `MaxSize = 5`, `MaxIv = 100`, `MaxCp = 9000`, `MaxLevel = 55`, `MaxWeight = 9000000`, `MaxAtk = 15`, `MaxDef = 15`, `MaxSta = 15`, `PvpRankingWorst = 4096`. Raid/Egg: `Team = 4`. Raid: `Move = 9000`, `Evolution = 9000`.
+
+### Alarm Field Mappings
+- **Raid**: Maps `move`, `evolution`, `exclusive`, `gym_id`, `rsvp_changes` in addition to standard filter fields.
+- **Egg**: Maps `exclusive`, `gym_id`, `rsvp_changes`.
+- **Gym**: Maps `battle_changes`, `gym_id`.
+- **Invasion**: `InvasionService` lowercases `grunt_type` on create to match Poracle's case-sensitive lookup.
 
 ### Bulk Operations
 - Each alarm controller has three distance endpoints:
@@ -251,6 +258,9 @@ On first startup after upgrade, the `SettingsMigrationStartupService` automatica
 
 ### MariaDB GET_LOCK Compatibility
 `MySql.EntityFrameworkCore`'s `MigrateAsync()` uses `GET_LOCK('__EFMigrationsLock', -1)` which returns NULL on MariaDB (infinite timeout not supported), causing `System.InvalidCastException`. The `MariaDbHistoryRepository` class overrides the lock acquisition to use `GET_LOCK(3600)` instead. This is registered via `ReplaceService<IHistoryRepository, MariaDbHistoryRepository>()` on `PoracleWebContext`.
+
+### Monster Filter Defaults
+C# `int` properties default to `0`, which silently breaks Poracle filters if Create model defaults are missing or wrong. For example, `Size = 0` means "tiny" in Poracle, but `Size = -1` means "no size filter" -- omitting the default causes every new monster alarm to filter by tiny size. Similarly, `MaxIv = 0` would exclude everything, `MaxLevel = 0` would match nothing, etc. Always verify that `*Create` model defaults match the values Poracle expects (originally defined in the PHP PoracleWeb codebase). See the "AutoMapper Update Models" section above for the full list of required defaults.
 
 ## Build & Run
 

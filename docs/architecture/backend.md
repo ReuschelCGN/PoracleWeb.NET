@@ -8,6 +8,9 @@
 
 Many Poracle DB columns are `NOT NULL` with empty-string defaults, but EF Core maps them as `string?`. The `EnsureNotNullDefaults()` method sets null strings to `""` before saving to avoid constraint violations.
 
+!!! note "Coerces all null strings, including nullable columns"
+    `EnsureNotNullDefaults()` reflects over **all** string properties and coerces any null value to `""`. This means genuinely nullable DB columns like `gym_id` get stored as `""` instead of `NULL`. This is acceptable because Poracle treats both empty string and NULL identically for these fields.
+
 ### Targeted distance updates
 
 `UpdateDistanceByUidsAsync()` does targeted distance-only SQL updates without touching other fields. Use this for bulk distance operations instead of the generic `UpdateAsync`.
@@ -31,6 +34,37 @@ All `*Update` models (MonsterUpdate, RaidUpdate, etc.) use **nullable `int?`** p
     // ❌ Wrong — zeros out clean, template, filter settings
     this.http.put(`/api/pokemon/${uid}`, { distance });
     ```
+
+## AutoMapper create model defaults
+
+`*Create` models (MonsterCreate, RaidCreate, etc.) must have **property defaults that match the PHP PoracleWeb defaults** used by the original project. Without these defaults, AutoMapper maps C# zero-values onto the entity, overwriting the database column defaults that Poracle expects.
+
+Key defaults on create models:
+
+| Property | Default | Notes |
+|---|---|---|
+| `MaxIv` | 100 | |
+| `MaxCp` | 9000 | |
+| `MaxLevel` | 55 | |
+| `MaxWeight` | 9000000 | |
+| `MaxAtk` | 15 | |
+| `MaxDef` | 15 | |
+| `MaxSta` | 15 | |
+| `PvpRankingWorst` | 4096 | |
+| `Size` | -1 | Means "any size" |
+| `MaxSize` | 5 | |
+| `Team` (Raid/Egg) | 4 | Means "any team" |
+| `Move` (Raid) | 9000 | Means "any move" |
+| `Evolution` (Raid) | 9000 | Means "any evolution" |
+
+!!! danger "Forgetting a default silently breaks filters"
+    If a create model property defaults to `0` (C#'s `int` default) instead of the expected Poracle default, AutoMapper writes `0` to the entity. The alarm is saved but the filter is silently too restrictive or non-functional — e.g., `MaxIv=0` means nothing ever matches.
+
+## Invasion service
+
+### GruntType case normalization
+
+`InvasionService.CreateAsync()` and `BulkCreateAsync()` call `ToLowerInvariant()` on the `GruntType` field before saving. This matches Poracle's case-sensitive matching behavior — grunt types must be lowercase for notifications to fire correctly.
 
 ## Bulk operations
 

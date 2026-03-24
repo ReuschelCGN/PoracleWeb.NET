@@ -156,13 +156,14 @@ export const HELP_SECTIONS: HelpSection[] = [
 <ul>
 <li><strong>IV range</strong> — Minimum and maximum IV percentage (0-100%)</li>
 <li><strong>CP range</strong> — Filter by combat power</li>
-<li><strong>Level range</strong> — Filter by Pokemon level (0-50)</li>
+<li><strong>Level range</strong> — Filter by Pokemon level (0-55)</li>
 <li><strong>Individual stats</strong> — Filter by ATK, DEF, and STA values (0-15 each)</li>
 <li><strong>Form</strong> — Track specific forms (e.g. Alolan, Galarian) or all forms</li>
 <li><strong>Gender</strong> — Male, female, genderless, or all</li>
 <li><strong>Weight</strong> — Filter by weight range</li>
-<li><strong>Size</strong> — Filter by size category (Tiny/XXS, Small/XS, Normal, Large/XL, Big/XXL)</li>
+<li><strong>Size</strong> — Filter by size category: select ALL (no filter) to match any size, or pick specific sizes from XXS through XXL (XXS, XS, Normal, XL, XXL)</li>
 </ul>
+<div class="callout callout-info"><span class="callout-icon">&#x2139;&#xFE0F;</span><div><strong>Default filter values</strong> are set so that all Pokemon match when no filters are explicitly configured. For example, IV defaults to 0-100%, level to 0-55, and size to ALL. You only need to adjust the filters you care about.</div></div>
 <h4>PVP Filters</h4>
 <p>Get notified when a Pokemon has great PVP IVs. Select a league (Great, Ultra, or Little Cup) and set the rank range you care about (e.g. rank 1-50).</p>
 <h4>"All Pokemon" Alarm</h4>
@@ -191,8 +192,11 @@ export const HELP_SECTIONS: HelpSection[] = [
 <li><strong>By Level</strong> — Select raid levels (1-6) or egg levels to track all raids of that tier.</li>
 <li><strong>By Boss</strong> — Select specific Pokemon raid bosses you want to hunt.</li>
 <li><strong>Team filter</strong> — Only notify for raids at gyms controlled by a specific team (Mystic, Valor, Instinct).</li>
+<li><strong>Gym tracking</strong> — Track raids at specific gyms by name so you only get notified about your favorite gyms.</li>
+<li><strong>Move filter</strong> — Filter raid bosses by their fast or charged moves.</li>
+<li><strong>RSVP notifications</strong> — Get notified when other trainers RSVP to a raid or egg you're tracking.</li>
 </ul>
-<p>Raid and Egg alarms are managed on separate tabs within the Raids page.</p>
+<p>Raid and Egg alarms are managed on separate tabs within the Raids page. Eggs also support gym-specific tracking and RSVP notifications.</p>
 
 <h4>Quest Alarms</h4>
 <p>Get notified about field research tasks with specific rewards.</p>
@@ -207,7 +211,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 <p>Get notified about Team Rocket invasions.</p>
 <ul>
 <li><strong>Track All</strong> — One alarm for every grunt type and leader.</li>
-<li><strong>By Type</strong> — Select specific grunt types (Bug, Dragon, Fire, etc.), Rocket Leaders, or Giovanni.</li>
+<li><strong>By Type</strong> — Select specific grunt types (Bug, Dragon, Fire, etc.), Rocket Leaders, or Giovanni. Grunt type names are automatically normalized (case-insensitive), so you don't need to worry about exact capitalization.</li>
 <li><strong>Gender</strong> — Filter by grunt gender.</li>
 </ul>
 
@@ -218,7 +222,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 <p>Track nesting Pokemon species. Set a <strong>minimum spawns per hour</strong> threshold so you only get notified about nests with enough activity.</p>
 
 <h4>Gym Alarms</h4>
-<p>Track gym team changes. Select which teams (Neutral, Mystic, Valor, Instinct) to monitor. Enable <strong>Slot Changes</strong> tracking to get notified when gym slots open up.</p>`,
+<p>Track gym team changes. Select which teams (Neutral, Mystic, Valor, Instinct) to monitor. Enable <strong>Slot Changes</strong> tracking to get notified when gym slots open up, or enable <strong>Battle Changes</strong> tracking to get notified when a gym is under attack.</p>`,
     icon: 'shield',
     iconColor: '#f44336',
     subtitle: 'Raids, eggs, quests, rockets, lures, nests, gyms',

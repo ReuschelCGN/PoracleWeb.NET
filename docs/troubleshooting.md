@@ -79,3 +79,27 @@ this.http.put(`/api/pokemon/${uid}`, { distance });
 **Problem**: Multiple users report being unable to log in simultaneously.
 
 **Solution**: Auth rate limiting must be **per-IP** (partitioned), not global. Check that `Program.cs` uses `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`, not `AddFixedWindowLimiter`.
+
+---
+
+## Monster filter defaults (size, max_level, etc.)
+
+**Problem**: New monster alarms created via the web UI may silently filter out pokemon if model defaults don't match PoracleJS expectations. For example, `max_size=0` causes all pokemon with size data to be rejected, and `size=0` instead of `size=-1` shows incorrectly in the old PHP UI as "-XXL".
+
+**Solution**: All Create model defaults are aligned with the PHP PoracleWeb `include/defaults.php`. Key values:
+
+- `size=-1` means "no size filter" (not `0`)
+- `max_size=5` means "up to XXL"
+- `max_level=55` (not 40 or 50)
+- Raid/Egg `team=4` means "all teams"
+- Raid `move=9000` and `evolution=9000` mean "no filter"
+
+If users report missing alerts, check the `monsters` table for rows where max fields are `0` when they should have defaults:
+
+```sql
+-- Find alarms with broken size filter (rejects all pokemon with size data)
+SELECT * FROM monsters WHERE max_size = 0;
+
+-- Find alarms with incorrect "no size filter" value (shows as "-XXL" in PHP UI)
+SELECT * FROM monsters WHERE size = 0;
+```
