@@ -23,34 +23,22 @@ public class Monster
     {
         get; set;
     }
-    public int MaxIv
-    {
-        get; set;
-    }
+    public int MaxIv { get; set; } = 100;
     public int MinCp
     {
         get; set;
     }
-    public int MaxCp
-    {
-        get; set;
-    }
+    public int MaxCp { get; set; } = 9000;
     public int MinLevel
     {
         get; set;
     }
-    public int MaxLevel
-    {
-        get; set;
-    }
+    public int MaxLevel { get; set; } = 40;
     public int MinWeight
     {
         get; set;
     }
-    public int MaxWeight
-    {
-        get; set;
-    }
+    public int MaxWeight { get; set; } = 9000000;
     public int Atk
     {
         get; set;
@@ -63,22 +51,10 @@ public class Monster
     {
         get; set;
     }
-    public int MaxAtk
-    {
-        get; set;
-    }
-    public int MaxDef
-    {
-        get; set;
-    }
-    public int MaxSta
-    {
-        get; set;
-    }
-    public int PvpRankingWorst
-    {
-        get; set;
-    }
+    public int MaxAtk { get; set; } = 15;
+    public int MaxDef { get; set; } = 15;
+    public int MaxSta { get; set; } = 15;
+    public int PvpRankingWorst { get; set; } = 4096;
     public int PvpRankingBest
     {
         get; set;
