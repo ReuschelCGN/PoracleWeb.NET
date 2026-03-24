@@ -163,6 +163,40 @@ public partial class UserGeofenceService(
 
     public async Task<List<UserGeofence>> GetAllAsync() => await this._repository.GetAllAsync();
 
+    public async Task<List<UserGeofence>> GetAllWithDetailsAsync()
+    {
+        var geofences = await this.GetAllAsync();
+
+        // Batch-fetch owner humans by distinct HumanId
+        var humanIds = geofences.Select(g => g.HumanId).Distinct().ToList();
+        var humans = await this._humanRepository.GetByIdsAsync(humanIds);
+        var humanLookup = humans.ToDictionary(h => h.Id, h => h);
+
+        foreach (var g in geofences)
+        {
+            // Enrich owner name
+            g.OwnerName = humanLookup.TryGetValue(g.HumanId, out var human)
+                ? human.Name ?? g.HumanId
+                : g.HumanId;
+
+            // Parse polygon and set point count
+            if (!string.IsNullOrEmpty(g.PolygonJson))
+            {
+                try
+                {
+                    g.Polygon = JsonSerializer.Deserialize<double[][]>(g.PolygonJson);
+                    g.PointCount = g.Polygon?.Length ?? 0;
+                }
+                catch (JsonException ex)
+                {
+                    LogPolygonDeserializationFailed(this._logger, ex, g.KojiName);
+                }
+            }
+        }
+
+        return geofences;
+    }
+
     public async Task AdminDeleteAsync(string adminId, int id)
     {
         var geofence = await this._repository.GetByIdAsync(id)

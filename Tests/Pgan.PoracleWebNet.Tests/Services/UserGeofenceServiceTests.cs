@@ -606,6 +606,171 @@ public class UserGeofenceServiceTests
         this._repository.Verify(r => r.GetAllAsync(), Times.Once);
     }
 
+    // --- GetAllWithDetailsAsync ---
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncReturnsEnrichedGeofencesWithOwnerNames()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "user1", PolygonJson = "[[1,2],[3,4],[5,6]]" },
+            new() { Id = 2, KojiName = "area2", HumanId = "user2", PolygonJson = "[[7,8],[9,10],[11,12]]" }
+        };
+        var humans = new List<Human>
+        {
+            new() { Id = "user1", Name = "Alice" },
+            new() { Id = "user2", Name = "Bob" }
+        };
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(humans.AsEnumerable());
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal("Alice", result[0].OwnerName);
+        Assert.Equal("Bob", result[1].OwnerName);
+    }
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncFallsBackToHumanIdWhenHumanNotFound()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "known_user", PolygonJson = "[[1,2],[3,4],[5,6]]" },
+            new() { Id = 2, KojiName = "area2", HumanId = "unknown_user", PolygonJson = "[[7,8],[9,10],[11,12]]" }
+        };
+        var humans = new List<Human>
+        {
+            new() { Id = "known_user", Name = "Alice" }
+        };
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(humans.AsEnumerable());
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        Assert.Equal("Alice", result[0].OwnerName);
+        Assert.Equal("unknown_user", result[1].OwnerName);
+    }
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncFallsBackToHumanIdWhenNameIsNull()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "user1" }
+        };
+        var humans = new List<Human>
+        {
+            new() { Id = "user1", Name = null }
+        };
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(humans.AsEnumerable());
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        Assert.Equal("user1", result[0].OwnerName);
+    }
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncParsesPolygonJsonAndSetsPointCount()
+    {
+        var polygon = new[] { new[] { 1.0, 2.0 }, [3.0, 4.0], [5.0, 6.0], [7.0, 8.0] };
+        var polygonJson = System.Text.Json.JsonSerializer.Serialize(polygon);
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "u1", PolygonJson = polygonJson }
+        };
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new List<Human> { new() { Id = "u1", Name = "User" } }.AsEnumerable());
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        Assert.NotNull(result[0].Polygon);
+        Assert.Equal(4, result[0].Polygon!.Length);
+        Assert.Equal(4, result[0].PointCount);
+        Assert.Equal(1.0, result[0].Polygon![0][0]);
+        Assert.Equal(2.0, result[0].Polygon![0][1]);
+    }
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncHandlesNullPolygonJsonGracefully()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "u1", PolygonJson = null }
+        };
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new List<Human> { new() { Id = "u1", Name = "User" } }.AsEnumerable());
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        Assert.Null(result[0].Polygon);
+        Assert.Equal(0, result[0].PointCount);
+    }
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncHandlesEmptyPolygonJsonGracefully()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "u1", PolygonJson = "" }
+        };
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new List<Human> { new() { Id = "u1", Name = "User" } }.AsEnumerable());
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        Assert.Null(result[0].Polygon);
+        Assert.Equal(0, result[0].PointCount);
+    }
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncReturnsEmptyListWithoutErrors()
+    {
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync([]);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync([]);
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        Assert.Empty(result);
+        this._humanRepo.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(ids => !ids.Any())), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllWithDetailsAsyncDeduplicatesHumanIdLookups()
+    {
+        var geofences = new List<UserGeofence>
+        {
+            new() { Id = 1, KojiName = "area1", HumanId = "u1" },
+            new() { Id = 2, KojiName = "area2", HumanId = "u1" },
+            new() { Id = 3, KojiName = "area3", HumanId = "u2" }
+        };
+        this._repository.Setup(r => r.GetAllAsync()).ReturnsAsync(geofences);
+        this._humanRepo.Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>()))
+            .ReturnsAsync(new List<Human>
+            {
+                new() { Id = "u1", Name = "Alice" },
+                new() { Id = "u2", Name = "Bob" }
+            }.AsEnumerable());
+
+        var result = await this._sut.GetAllWithDetailsAsync();
+
+        // Verify GetByIdsAsync was called with only distinct IDs (2, not 3)
+        this._humanRepo.Verify(r => r.GetByIdsAsync(It.Is<IEnumerable<string>>(
+            ids => ids.Count() == 2)), Times.Once);
+        // Both geofences from u1 should have the same owner name
+        Assert.Equal("Alice", result[0].OwnerName);
+        Assert.Equal("Alice", result[1].OwnerName);
+        Assert.Equal("Bob", result[2].OwnerName);
+    }
+
     // --- GetPendingSubmissionsAsync ---
 
     [Fact]

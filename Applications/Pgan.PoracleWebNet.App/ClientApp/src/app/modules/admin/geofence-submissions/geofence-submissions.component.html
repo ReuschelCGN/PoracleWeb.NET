@@ -1,6 +1,6 @@
 <div class="page-header">
   <div class="page-header-text">
-    <h1>Geofence Management</h1>
+    <h1>User Geofences</h1>
     <p class="page-description">Review submissions, manage user geofences, and clean up records.</p>
   </div>
 </div>
@@ -16,14 +16,34 @@
   </mat-button-toggle-group>
 
   @if (loading()) {
-    <div class="loading-container">
-      <mat-spinner diameter="48"></mat-spinner>
+    <div class="submissions-grid">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="submission-card skeleton-card">
+          <div class="skeleton-map-placeholder shimmer"></div>
+          <div class="submission-card-body">
+            <div class="skeleton-line skeleton-title shimmer"></div>
+            <div class="skeleton-line skeleton-subtitle shimmer"></div>
+            <div class="skeleton-line skeleton-meta shimmer"></div>
+          </div>
+        </div>
+      }
     </div>
   } @else {
     @if (filteredGeofences().length > 0) {
       <div class="submissions-grid">
         @for (geofence of filteredGeofences(); track geofence.id) {
           <div class="submission-card">
+            <div class="map-thumbnail" [attr.data-geofence-id]="geofence.id" (click)="openDetailDialog(geofence)">
+              @if (!geofence.polygon?.length) {
+                <div class="map-thumbnail-empty">
+                  <mat-icon>pentagon</mat-icon>
+                  <span>No polygon data</span>
+                </div>
+              }
+              <div class="map-thumbnail-expand">
+                <mat-icon>open_in_full</mat-icon>
+              </div>
+            </div>
             <div
               class="submission-card-accent"
               [class.accent-pending]="geofence.status === 'pending_review'"
@@ -36,7 +56,9 @@
                 <div class="submission-card-info">
                   <span class="submission-card-name">{{ geofence.displayName }}</span>
                   <span class="submission-card-group">{{ geofence.groupName }}</span>
-                  <span class="submission-card-owner">Owner: {{ geofence.humanId }}</span>
+                  <span class="submission-card-owner" [matTooltip]="geofence.humanId">
+                    Owner: {{ geofence.ownerName ?? geofence.humanId }}
+                  </span>
                 </div>
                 @switch (geofence.status) {
                   @case ('pending_review') {
@@ -54,6 +76,10 @@
                 }
               </div>
               <div class="submission-card-meta">
+                <div class="meta-item">
+                  <mat-icon>timeline</mat-icon>
+                  <span>{{ getPointCount(geofence) }} points</span>
+                </div>
                 <div class="meta-item">
                   <mat-icon>schedule</mat-icon>
                   <span>Created {{ geofence.createdAt | date: 'mediumDate' }}</span>
@@ -84,6 +110,9 @@
                 }
               </div>
               <div class="submission-card-actions">
+                <button mat-icon-button (click)="openDetailDialog(geofence)" matTooltip="View geofence details">
+                  <mat-icon>visibility</mat-icon>
+                </button>
                 @if (geofence.status === 'pending_review') {
                   <button mat-raised-button color="primary" (click)="openReviewDialog(geofence)" matTooltip="Review this submission">
                     <mat-icon>rate_review</mat-icon>

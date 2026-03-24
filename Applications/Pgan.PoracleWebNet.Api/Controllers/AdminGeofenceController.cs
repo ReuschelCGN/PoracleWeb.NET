@@ -17,7 +17,13 @@ public partial class AdminGeofenceController(IUserGeofenceService userGeofenceSe
             return this.Forbid();
         }
 
-        var geofences = await this._userGeofenceService.GetAllAsync();
+        var geofences = await this._userGeofenceService.GetAllWithDetailsAsync();
+
+        foreach (var geofence in geofences)
+        {
+            geofence.OwnerAvatarUrl = Services.AvatarCacheService.GetAvatarOrDefault(geofence.HumanId);
+        }
+
         return this.Ok(geofences);
     }
 

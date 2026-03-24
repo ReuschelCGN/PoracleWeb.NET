@@ -350,7 +350,10 @@ export interface UserGeofence {
   humanId: string;
   id: number;
   kojiName: string;
+  ownerAvatarUrl?: string;
+  ownerName?: string;
   parentId: number;
+  pointCount?: number;
   polygon?: [number, number][];
   promotedName?: string;
   reviewedAt?: string;

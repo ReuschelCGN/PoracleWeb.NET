@@ -1,0 +1,73 @@
+<h2 mat-dialog-title class="dialog-title">
+  <mat-icon class="title-icon">pentagon</mat-icon>
+  {{ geofence.displayName }}
+</h2>
+<mat-dialog-content>
+  <div class="geofence-summary">
+    <div class="summary-row">
+      <span class="summary-label">Name</span>
+      <span class="summary-value">{{ geofence.displayName }}</span>
+    </div>
+    @if (geofence.ownerName) {
+      <div class="summary-row">
+        <span class="summary-label">Owner</span>
+        <span class="summary-value">
+          {{ geofence.ownerName }}
+          @if (geofence.humanId && geofence.humanId !== geofence.ownerName) {
+            <span class="owner-id">({{ geofence.humanId }})</span>
+          }
+        </span>
+      </div>
+    }
+    <div class="summary-row">
+      <span class="summary-label">Group</span>
+      <span class="summary-value">{{ geofence.groupName }}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">Status</span>
+      <span class="summary-value">
+        <mat-chip
+          [style.--mdc-chip-elevated-container-color]="statusColor"
+          [style.--mdc-chip-label-text-color]="'#fff'"
+          class="status-chip">
+          {{ statusLabel }}
+        </mat-chip>
+      </span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">Points</span>
+      <span class="summary-value">{{ pointCount }}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">Area</span>
+      <span class="summary-value">{{ areaDisplay }}</span>
+    </div>
+    <div class="summary-row">
+      <span class="summary-label">Created</span>
+      <span class="summary-value">{{ geofence.createdAt | date: 'medium' }}</span>
+    </div>
+    @if (geofence.submittedAt) {
+      <div class="summary-row">
+        <span class="summary-label">Submitted</span>
+        <span class="summary-value">{{ geofence.submittedAt | date: 'medium' }}</span>
+      </div>
+    }
+    @if (geofence.reviewedBy) {
+      <div class="summary-row">
+        <span class="summary-label">Reviewed by</span>
+        <span class="summary-value">{{ geofence.reviewedBy }}</span>
+      </div>
+    }
+    @if (geofence.reviewNotes) {
+      <div class="summary-row">
+        <span class="summary-label">Review notes</span>
+        <span class="summary-value review-notes">{{ geofence.reviewNotes }}</span>
+      </div>
+    }
+  </div>
+
+  <div #detailMap class="detail-map-container"></div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

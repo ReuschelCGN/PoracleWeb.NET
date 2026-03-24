@@ -19,22 +19,36 @@ public class AdminGeofenceControllerTests : ControllerTestBase
         SetupUser(this._sut, isAdmin: true);
     }
 
-    // --- GetAll ---
+    // --- GetAll (with details) ---
 
     [Fact]
-    public async Task GetAllReturnsOkWithList()
+    public async Task GetAllReturnsOkWithEnrichedList()
     {
         var geofences = new List<UserGeofence>
         {
-            new() { Id = 1, KojiName = "downtown", DisplayName = "Downtown", Status = "active" },
-            new() { Id = 2, KojiName = "park", DisplayName = "Park", Status = "approved" }
+            new() { Id = 1, KojiName = "downtown", DisplayName = "Downtown", Status = "active", OwnerName = "Alice", PointCount = 5 },
+            new() { Id = 2, KojiName = "park", DisplayName = "Park", Status = "approved", OwnerName = "Bob", PointCount = 12 }
         };
-        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync(geofences);
+        this._service.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync(geofences);
 
         var result = await this._sut.GetAll();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(geofences, ok.Value);
+        var list = Assert.IsType<List<UserGeofence>>(ok.Value);
+        Assert.Equal(2, list.Count);
+        Assert.Equal("Alice", list[0].OwnerName);
+        Assert.Equal("Bob", list[1].OwnerName);
+    }
+
+    [Fact]
+    public async Task GetAllCallsGetAllWithDetailsAsyncNotGetAllAsync()
+    {
+        this._service.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync([]);
+
+        await this._sut.GetAll();
+
+        this._service.Verify(s => s.GetAllWithDetailsAsync(), Times.Once);
+        this._service.Verify(s => s.GetAllAsync(), Times.Never);
     }
 
     [Fact]
@@ -50,7 +64,7 @@ public class AdminGeofenceControllerTests : ControllerTestBase
     [Fact]
     public async Task GetAllReturnsEmptyListWhenNoGeofences()
     {
-        this._service.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
+        this._service.Setup(s => s.GetAllWithDetailsAsync()).ReturnsAsync([]);
 
         var result = await this._sut.GetAll();
 

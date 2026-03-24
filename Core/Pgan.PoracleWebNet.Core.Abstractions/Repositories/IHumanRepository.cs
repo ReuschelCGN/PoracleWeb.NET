@@ -9,6 +9,7 @@ public interface IHumanRepository
     public Task<Human?> GetByIdAndProfileAsync(string id, int profileNo);
     public Task<Human> CreateAsync(Human human);
     public Task<Human> UpdateAsync(Human human);
+    public Task<IEnumerable<Human>> GetByIdsAsync(IEnumerable<string> ids);
     public Task<bool> ExistsAsync(string id);
     public Task<int> DeleteAllAlarmsByUserAsync(string userId);
     public Task<bool> DeleteUserAsync(string userId);

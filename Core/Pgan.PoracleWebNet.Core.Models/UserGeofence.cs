@@ -57,4 +57,18 @@ public class UserGeofence
     {
         get; set;
     }
+
+    // Enriched in service layer (not mapped by AutoMapper)
+    public string? OwnerName
+    {
+        get; set;
+    }
+    public string? OwnerAvatarUrl
+    {
+        get; set;
+    }
+    public int PointCount
+    {
+        get; set;
+    }
 }
