@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Fixed
+- use size=-1 as no-filter default to match PoracleJS convention ([PR #50](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/50))
 ## [0.6.3] - 2026-03-24
 
 ## [0.6.3] - 2026-03-24
