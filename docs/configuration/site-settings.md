@@ -165,10 +165,19 @@ All repositories use the [UICONS](https://github.com/UIcons/UIcons) standard for
 
 ## Internal Settings
 
-The following settings are managed internally by the application and are **not shown** in the admin settings UI. They should not be modified manually.
+The following settings exist in the database but are **not shown** in the admin settings UI. They are managed automatically by the application and should not be modified manually. The API blocks both reads and writes for these keys.
 
 | Key | Category | Description |
 |---|---|---|
 | `migration_completed` | system | Sentinel flag indicating that the one-time data migration from `pweb_settings` to structured tables has completed. Set automatically by `SettingsMigrationStartupService`. |
-| `api_address` | api | Poracle API address. Prefer setting this via `Poracle:ApiAddress` in [appsettings](reference.md). |
-| `api_secret` | api | Poracle API shared secret. Sensitive — prefer `Poracle:ApiSecret` in [appsettings](reference.md). |
+
+## Sensitive Settings
+
+These settings are stored in the database but hidden from the admin settings UI groups. Unlike internal settings, they **are** accessible to admin users via the API. Prefer configuring them via [appsettings](reference.md) environment variables instead.
+
+| Key | Category | Description |
+|---|---|---|
+| `api_address` | api | Poracle API address. Prefer `Poracle:ApiAddress` in [appsettings](reference.md). |
+| `api_secret` | api | Poracle API shared secret. Prefer `Poracle:ApiSecret` in [appsettings](reference.md). |
+| `telegram_bot_token` | telegram | Telegram bot token. Prefer `Telegram:BotToken` in [appsettings](reference.md). |
+| `scan_db` | database | Scanner database connection string. Prefer `ConnectionStrings:ScannerDb` in [appsettings](reference.md). |
