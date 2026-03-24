@@ -7,19 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-03-24
+
 ### Added
 - add size filter to Pokemon alarm dialogs ([PR #43](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/43))
 - **Admin geofence detail view**: enriched admin geofence management page with owner display names, avatar URLs, interactive Leaflet map detail dialog, lazy-loaded map thumbnails, point count, area calculation (m²/km²), reference geofences from Poracle areas, and skeleton loading ([#42](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/42), [PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 - **Site settings documentation**: comprehensive GitHub Pages docs covering all 39+ admin-configurable settings organized by category with types, descriptions, and prerequisites ([#44](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/44), [PR #45](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/45))
-
-### Fixed
-- **Internal settings visible in admin UI**: hide `migration_completed` and other internal system settings from the admin settings API and block writes with `BadRequest`. Frontend defense-in-depth filtering added as well. ([#44](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/44), [PR #45](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/45))
 
 ### Changed
 - extract `GetDefaultAvatarUrl` to shared `AvatarCacheService.GetAvatarOrDefault()` static method, removing duplication from `AdminController` and `AdminGeofenceController` ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 - extract `GEOFENCE_STATUS_COLORS` to shared `geofence.utils.ts` constant ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 
 ### Fixed
+- **Internal settings visible in admin UI**: hide `migration_completed` and other internal system settings from the admin settings API and block writes with `BadRequest`. Frontend defense-in-depth filtering added as well. ([#44](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/44), [PR #45](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/45))
 - **Map thumbnails cleared on tab switch**: admin geofence cards now properly destroy orphaned Leaflet maps when filtered out and re-initialize them when switching back ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 - **Leaflet map not rendering in detail dialog**: use `dialogRef.afterOpened()` and `height !important` to prevent Material dialog animation and Leaflet global CSS from collapsing the map container ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
 - **MySql.EntityFrameworkCore `Contains()` query failure**: replace `List<T>.Contains()` LINQ with sequential lookups for batch human ID resolution ([PR #46](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/46))
