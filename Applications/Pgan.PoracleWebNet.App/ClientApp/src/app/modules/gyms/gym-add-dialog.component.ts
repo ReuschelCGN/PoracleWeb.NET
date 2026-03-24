@@ -50,6 +50,7 @@ export class GymAddDialogComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly dialogRef = inject(MatDialogRef<GymAddDialogComponent>);
   form = this.fb.group({
+    battleChanges: [false],
     clean: [false],
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
@@ -85,7 +86,7 @@ export class GymAddDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     const creates = this.selectedTeamIds().map(team =>
       this.gymService.create({
-        battleChanges: 0,
+        battleChanges: v.battleChanges ? 1 : 0,
         clean: v.clean ? 1 : 0,
         distance: dist,
         gymId: null,
