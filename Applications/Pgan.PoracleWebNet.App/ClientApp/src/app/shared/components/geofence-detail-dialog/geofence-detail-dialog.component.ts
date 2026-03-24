@@ -7,12 +7,25 @@ import { MatIconModule } from '@angular/material/icon';
 import * as L from 'leaflet';
 
 import { GeofenceData, UserGeofence } from '../../../core/models';
+import { polygonAreaSqKm } from '../../utils/geo.utils';
 import { GEOFENCE_STATUS_COLORS } from '../../utils/geofence.utils';
 
 const AREA_COLORS = [
-  '#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa',
-  '#00acc1', '#f4511e', '#3949ab', '#7cb342', '#c0ca33',
-  '#6d4c41', '#546e7a', '#d81b60', '#039be5', '#00897b',
+  '#e53935',
+  '#1e88e5',
+  '#43a047',
+  '#fb8c00',
+  '#8e24aa',
+  '#00acc1',
+  '#f4511e',
+  '#3949ab',
+  '#7cb342',
+  '#c0ca33',
+  '#6d4c41',
+  '#546e7a',
+  '#d81b60',
+  '#039be5',
+  '#00897b',
 ];
 
 export interface GeofenceDetailDialogData {
@@ -38,6 +51,12 @@ export class GeofenceDetailDialogComponent implements OnDestroy {
 
   get geofence(): UserGeofence {
     return this.data.geofence;
+  }
+
+  get areaSqKm(): string {
+    if (!this.geofence.polygon || this.geofence.polygon.length < 3) return '0';
+    const area = polygonAreaSqKm(this.geofence.polygon as [number, number][]);
+    return area < 0.01 ? area.toFixed(4) : area < 1 ? area.toFixed(3) : area.toFixed(2);
   }
 
   get pointCount(): number {
