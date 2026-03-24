@@ -132,7 +132,7 @@ export class PokemonEditDialogComponent {
       maxCp: values.maxCp ?? 9000,
       maxDef: values.maxDef ?? 15,
       maxIv: values.maxIv ?? 100,
-      maxLevel: values.maxLevel ?? 40,
+      maxLevel: values.maxLevel ?? 55,
       maxSize: values.maxSize ?? 5,
       maxSta: values.maxSta ?? 15,
       maxWeight: values.maxWeight ?? 9000000,
@@ -145,7 +145,7 @@ export class PokemonEditDialogComponent {
       pvpRankingLeague: values.pvpRankingLeague ?? 0,
       pvpRankingMinCp: values.pvpRankingMinCp ?? 0,
       pvpRankingWorst: values.pvpRankingWorst ?? 100,
-      size: values.size ?? 0,
+      size: values.size ?? -1,
       sta: values.sta ?? 0,
       template: values.template || null,
     };

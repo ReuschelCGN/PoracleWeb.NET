@@ -117,7 +117,7 @@ export class RaidEditDialogComponent {
         level: raid.level,
         ping: values.ping || null,
         pokemonId: raid.pokemonId,
-        team: values.team ?? 0,
+        team: values.team ?? 4,
         template: values.template || null,
       };
       this.raidService.update(this.data.item.uid, update).subscribe({
@@ -138,7 +138,7 @@ export class RaidEditDialogComponent {
         exclusive: egg.exclusive,
         level: egg.level,
         ping: values.ping || null,
-        team: values.team ?? 0,
+        team: values.team ?? 4,
         template: values.template || null,
       };
       this.eggService.update(this.data.item.uid, update).subscribe({
