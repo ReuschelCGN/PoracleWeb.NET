@@ -14,12 +14,20 @@ public class SettingsController(ISiteSettingService siteSettingService) : BaseAp
         "api_secret", "telegram_bot_token", "scan_db",
     };
 
+    private static readonly HashSet<string> InternalKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "migration_completed",
+    };
+
     private readonly ISiteSettingService _siteSettingService = siteSettingService;
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         var settings = await this._siteSettingService.GetAllAsync();
+
+        // Always hide internal system settings (e.g. migration sentinel)
+        settings = settings.Where(s => !InternalKeys.Contains(s.Key));
 
         // Non-admin users only see non-sensitive settings
         if (!this.IsAdmin)
@@ -45,6 +53,14 @@ public class SettingsController(ISiteSettingService siteSettingService) : BaseAp
         if (!this.IsAdmin)
         {
             return this.Forbid();
+        }
+
+        if (InternalKeys.Contains(key))
+        {
+            return this.BadRequest(new
+            {
+                error = "Cannot modify internal system settings."
+            });
         }
 
         // Preserve existing category and valueType if not provided in the request
