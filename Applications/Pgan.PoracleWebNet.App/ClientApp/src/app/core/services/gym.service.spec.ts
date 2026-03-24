@@ -14,13 +14,13 @@ describe('GymService', () => {
   const mockGym: Gym = {
     id: '1',
     uid: 1,
-    battle_changes: 0,
+    battleChanges: 0,
     clean: 0,
     distance: 0,
     gymId: null,
     ping: null,
     profileNo: 1,
-    slot_changes: 0,
+    slotChanges: 0,
     team: 1,
     template: null,
   };
@@ -46,13 +46,13 @@ describe('GymService', () => {
 
   it('should create a gym', () => {
     const payload: GymCreate = {
-      battle_changes: 1,
+      battleChanges: 1,
       clean: 0,
       distance: 0,
       gymId: null,
       ping: null,
       profileNo: 1,
-      slot_changes: 1,
+      slotChanges: 1,
       team: 2,
       template: null,
     };

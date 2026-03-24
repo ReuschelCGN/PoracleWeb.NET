@@ -47,6 +47,24 @@ public class EggEntity
         get; set;
     }
 
+    [Column("exclusive")]
+    public int Exclusive
+    {
+        get; set;
+    }
+
+    [Column("gym_id")]
+    public string? GymId
+    {
+        get; set;
+    }
+
+    [Column("rsvp_changes")]
+    public int RsvpChanges
+    {
+        get; set;
+    }
+
     [Column("profile_no")]
     public int ProfileNo { get; set; } = 1;
 

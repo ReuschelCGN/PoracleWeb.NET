@@ -59,6 +59,30 @@ public class RaidEntity
         get; set;
     }
 
+    [Column("move")]
+    public int Move { get; set; } = 9000;
+
+    [Column("evolution")]
+    public int Evolution { get; set; } = 9000;
+
+    [Column("exclusive")]
+    public int Exclusive
+    {
+        get; set;
+    }
+
+    [Column("gym_id")]
+    public string? GymId
+    {
+        get; set;
+    }
+
+    [Column("rsvp_changes")]
+    public int RsvpChanges
+    {
+        get; set;
+    }
+
     [Column("profile_no")]
     public int ProfileNo { get; set; } = 1;
 

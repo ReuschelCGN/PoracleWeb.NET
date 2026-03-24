@@ -17,9 +17,11 @@ describe('EggService', () => {
     clean: 0,
     distance: 0,
     exclusive: 0,
+    gymId: null,
     level: 5,
     ping: null,
     profileNo: 1,
+    rsvpChanges: 0,
     team: 0,
     template: null,
   };
@@ -48,9 +50,11 @@ describe('EggService', () => {
       clean: 0,
       distance: 0,
       exclusive: 1,
+      gymId: null,
       level: 3,
       ping: null,
       profileNo: 1,
+      rsvpChanges: 0,
       team: 0,
       template: null,
     };

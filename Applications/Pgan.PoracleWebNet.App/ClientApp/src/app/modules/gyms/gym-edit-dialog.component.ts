@@ -84,8 +84,10 @@ export class GymEditDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     this.gymService
       .update(this.data.uid, {
+        battleChanges: this.data.battleChanges,
         clean: v.clean ? 1 : 0,
         distance: dist,
+        gymId: this.data.gymId,
         ping: v.ping || null,
         slotChanges: v.slotChanges ? 1 : 0,
         team: this.data.team,

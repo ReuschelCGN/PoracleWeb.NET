@@ -31,6 +31,14 @@ public class Gym
     {
         get; set;
     }
+    public int BattleChanges
+    {
+        get; set;
+    }
+    public string? GymId
+    {
+        get; set;
+    }
     public int ProfileNo
     {
         get; set;

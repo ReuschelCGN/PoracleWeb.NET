@@ -45,4 +45,34 @@ public class RaidUpdate
     {
         get; set;
     }
+
+    [Range(0, int.MaxValue)]
+    public int? Move
+    {
+        get; set;
+    }
+
+    [Range(0, int.MaxValue)]
+    public int? Evolution
+    {
+        get; set;
+    }
+
+    [Range(0, 1)]
+    public int? Exclusive
+    {
+        get; set;
+    }
+
+    [StringLength(255)]
+    public string? GymId
+    {
+        get; set;
+    }
+
+    [Range(0, 1)]
+    public int? RsvpChanges
+    {
+        get; set;
+    }
 }

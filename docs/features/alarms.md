@@ -7,12 +7,13 @@ PoracleWeb provides a browser-based UI for managing Poracle notification filters
 | Type | Description |
 |---|---|
 | **Pokemon** | Filter by species, IV, CP, level, PVP rank, gender, size |
-| **Raids** | Filter by raid boss, tier, EX eligibility |
+| **Raids** | Filter by raid boss, tier, move, evolution, EX eligibility, specific gym, RSVP changes |
+| **Eggs** | Filter by egg tier, EX eligibility, specific gym, RSVP changes |
 | **Quests** | Filter by reward type and Pokemon |
 | **Invasions** | Filter by grunt type and shadow Pokemon |
 | **Lures** | Filter by lure type |
 | **Nests** | Filter by nesting Pokemon species |
-| **Gyms** | Filter by gym team changes |
+| **Gyms** | Filter by gym team changes, battle activity, specific gym |
 
 ## Creating alarms
 
@@ -55,6 +56,99 @@ Users can maintain multiple alarm profiles. Only one profile is active at a time
 - Switch profiles from the **Profiles** page or the user menu
 - Each alarm is associated with a `profile_no`
 - The active profile is tracked by `humans.current_profile_no`
+
+## Pokemon alarm filters
+
+### Size filter
+
+The size filter uses special sentinel values:
+
+- **`size = -1`** — No filter (ALL sizes). This is the default.
+- **`size = 1`** through **`size = 5`** — Specific sizes: 1 = XXS, 2 = XS, 3 = Normal, 4 = XL, 5 = XXL.
+- **`max_size = 5`** — Default upper bound.
+
+When a user selects a specific size, both `size` and `max_size` are set to the same value, creating an exact match. For example, selecting XXL sets `size = 5, max_size = 5`.
+
+### Level range
+
+The default maximum level is **55** (not 40 or 50), matching Poracle's support for shadow/purified/best-buddy boosted levels.
+
+## Raid alarm filters
+
+Raid alarms support these fields beyond the basic tier/boss selection:
+
+| Field | Default | Description |
+|---|---|---|
+| `team` | `4` (any team) | Gym team controlling the raid |
+| `move` | `9000` (any move) | Filter by raid boss move |
+| `evolution` | `9000` (any) | Filter by evolution type (e.g., Mega, Primal) |
+| `exclusive` | `false` | EX/exclusive raid flag |
+| `gymId` | `null` (all gyms) | Track a specific gym by ID |
+| `rsvpChanges` | `false` | Receive RSVP change notifications |
+
+## Egg alarm filters
+
+Egg alarms support:
+
+| Field | Default | Description |
+|---|---|---|
+| `team` | `4` (any team) | Gym team controlling the egg |
+| `exclusive` | `false` | EX/exclusive egg flag |
+| `gymId` | `null` (all gyms) | Track a specific gym by ID |
+| `rsvpChanges` | `false` | Receive RSVP change notifications |
+
+## Gym alarm filters
+
+Gym alarms support:
+
+| Field | Default | Description |
+|---|---|---|
+| `battleChanges` | `false` | Notify on battle activity changes at the gym |
+| `gymId` | `null` (all gyms) | Track a specific gym by ID |
+
+## Invasion alarm filters
+
+Invasion alarms filter by grunt type. The `grunt_type` value is **automatically lowercased** on create because Poracle uses case-sensitive matching for grunt types.
+
+## Default values
+
+Comprehensive table of all monster (Pokemon) alarm defaults, matching the PHP PoracleWeb defaults:
+
+| Field | Default | Description |
+|---|---|---|
+| `min_iv` | `0` | Minimum IV percentage |
+| `max_iv` | `100` | Maximum IV percentage |
+| `min_cp` | `0` | Minimum CP |
+| `max_cp` | `9000` | Maximum CP |
+| `min_level` | `0` | Minimum level |
+| `max_level` | `55` | Maximum level |
+| `min_weight` | `0` | Minimum weight |
+| `max_weight` | `9000000` | Maximum weight |
+| `atk` | `0` | Minimum attack IV |
+| `def` | `0` | Minimum defense IV |
+| `sta` | `0` | Minimum stamina IV |
+| `max_atk` | `15` | Maximum attack IV |
+| `max_def` | `15` | Maximum defense IV |
+| `max_sta` | `15` | Maximum stamina IV |
+| `pvp_ranking_best` | `0` | Best PVP ranking position |
+| `pvp_ranking_worst` | `4096` | Worst PVP ranking position |
+| `gender` | `0` | Gender filter (0 = any) |
+| `size` | `-1` | Size filter (-1 = no filter / all sizes) |
+| `max_size` | `5` | Maximum size upper bound |
+
+Raid-specific defaults:
+
+| Field | Default |
+|---|---|
+| `team` | `4` (any team) |
+| `move` | `9000` (any move) |
+| `evolution` | `9000` (any evolution) |
+
+Egg-specific defaults:
+
+| Field | Default |
+|---|---|
+| `team` | `4` (any team) |
 
 ## Quick Picks
 

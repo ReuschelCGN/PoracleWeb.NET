@@ -147,7 +147,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Min Size</mat-label>
               <mat-select [formControl]="filtersForm.controls.size">
-                <mat-option [value]="0">Any</mat-option>
+                <mat-option [value]="-1">Any</mat-option>
                 <mat-option [value]="1">Tiny (XXS)</mat-option>
                 <mat-option [value]="2">Small (XS)</mat-option>
                 <mat-option [value]="3">Normal</mat-option>
@@ -158,7 +158,7 @@
             <mat-form-field appearance="outline">
               <mat-label>Max Size</mat-label>
               <mat-select [formControl]="filtersForm.controls.maxSize">
-                <mat-option [value]="0">Any</mat-option>
+                <mat-option [value]="5">Any</mat-option>
                 <mat-option [value]="1">Tiny (XXS)</mat-option>
                 <mat-option [value]="2">Small (XS)</mat-option>
                 <mat-option [value]="3">Normal</mat-option>

@@ -112,11 +112,15 @@ export class RaidEditDialogComponent {
       const update: RaidUpdate = {
         clean: values.clean ? 1 : 0,
         distance: distanceMeters,
+        evolution: raid.evolution,
         exclusive: raid.exclusive,
         form: raid.form,
+        gymId: raid.gymId,
         level: raid.level,
+        move: raid.move,
         ping: values.ping || null,
         pokemonId: raid.pokemonId,
+        rsvpChanges: raid.rsvpChanges,
         team: values.team ?? 4,
         template: values.template || null,
       };
@@ -136,8 +140,10 @@ export class RaidEditDialogComponent {
         clean: values.clean ? 1 : 0,
         distance: distanceMeters,
         exclusive: egg.exclusive,
+        gymId: egg.gymId,
         level: egg.level,
         ping: values.ping || null,
+        rsvpChanges: egg.rsvpChanges,
         team: values.team ?? 4,
         template: values.template || null,
       };

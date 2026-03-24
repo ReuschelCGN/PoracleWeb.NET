@@ -42,6 +42,7 @@ export type MonsterUpdate = Partial<MonsterCreate>;
 export interface Raid {
   clean: number;
   distance: number;
+  evolution: number;
   exclusive: number;
   form: number;
   gymId: string | null;
@@ -51,6 +52,7 @@ export interface Raid {
   ping: string | null;
   pokemonId: number;
   profileNo: number;
+  rsvpChanges: number;
   team: number;
   template: string | null;
   uid: number;
@@ -66,10 +68,12 @@ export interface Egg {
   clean: number;
   distance: number;
   exclusive: number;
+  gymId: string | null;
   id: string;
   level: number;
   ping: string | null;
   profileNo: number;
+  rsvpChanges: number;
   team: number;
   template: string | null;
   uid: number;
@@ -155,6 +159,7 @@ export type NestUpdate = Partial<NestCreate>;
 // ─── Gym ───────────────────────────────────────────────────────────────────────
 
 export interface Gym {
+  battleChanges: number;
   clean: number;
   distance: number;
   gymId: string | null;

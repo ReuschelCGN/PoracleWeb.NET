@@ -144,7 +144,7 @@ export class PokemonEditDialogComponent {
       pvpRankingBest: values.pvpRankingBest ?? 1,
       pvpRankingLeague: values.pvpRankingLeague ?? 0,
       pvpRankingMinCp: values.pvpRankingMinCp ?? 0,
-      pvpRankingWorst: values.pvpRankingWorst ?? 100,
+      pvpRankingWorst: values.pvpRankingWorst ?? 4096,
       size: values.size ?? -1,
       sta: values.sta ?? 0,
       template: values.template || null,

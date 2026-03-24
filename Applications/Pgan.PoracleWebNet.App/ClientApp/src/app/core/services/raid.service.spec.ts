@@ -16,6 +16,7 @@ describe('RaidService', () => {
     uid: 1,
     clean: 0,
     distance: 0,
+    evolution: 9000,
     exclusive: 0,
     form: 0,
     gymId: null,
@@ -24,6 +25,7 @@ describe('RaidService', () => {
     ping: null,
     pokemonId: 150,
     profileNo: 1,
+    rsvpChanges: 0,
     team: 0,
     template: null,
   };
@@ -54,6 +56,7 @@ describe('RaidService', () => {
     const payload: RaidCreate = {
       clean: 0,
       distance: 0,
+      evolution: 9000,
       exclusive: 1,
       form: 0,
       gymId: null,
@@ -62,6 +65,7 @@ describe('RaidService', () => {
       ping: null,
       pokemonId: 150,
       profileNo: 1,
+      rsvpChanges: 0,
       team: 0,
       template: 'default',
     };

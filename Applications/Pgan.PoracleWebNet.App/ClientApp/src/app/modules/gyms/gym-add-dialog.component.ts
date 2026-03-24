@@ -85,6 +85,7 @@ export class GymAddDialogComponent {
     const dist = v.distanceMode === 'areas' ? 0 : Math.round((v.distanceKm ?? 1) * 1000);
     const creates = this.selectedTeamIds().map(team =>
       this.gymService.create({
+        battleChanges: 0,
         clean: v.clean ? 1 : 0,
         distance: dist,
         gymId: null,
