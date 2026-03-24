@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-03-24
 
+## [1.0.0] - 2026-03-24
+
 ### Added
 - **PoracleNG compatibility**: officially supports both PoracleJS and PoracleNG
 - **GitHub Pages docs**: pymdownx.emoji extension for Material icon rendering in Quick Links ([#53](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/53), [PR #54](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/54))
@@ -230,6 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker deployment with Watchtower auto-updates
 
 [Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.4...v1.0.0
 [1.0.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.4...v1.0.0
 [0.6.4]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v0.6.1...v0.6.3
