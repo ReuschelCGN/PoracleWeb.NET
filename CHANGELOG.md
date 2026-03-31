@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
+- normalize empty-string nullable columns back to NULL before save (#76) ([PR #79](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/79))
 - default GymCreate.Team to 4 (any team) (#74) ([PR #75](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/75))
 ## [1.1.2] - 2026-03-31
 
