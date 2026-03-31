@@ -2,7 +2,7 @@
 FROM node:22-alpine AS angular-build
 WORKDIR /app/angular
 COPY Applications/Pgan.PoracleWebNet.App/ClientApp/package*.json ./
-RUN npm ci
+RUN npm install -g npm@11 --force && npm cache clean --force && npm ci
 COPY Applications/Pgan.PoracleWebNet.App/ClientApp/ ./
 RUN npx ng build --configuration production
 
