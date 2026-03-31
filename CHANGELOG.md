@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+### Added
+- add PokéStop event tracking to Invasions ([PR #68](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/68))
+
 ### Fixed
 - **Raid card team icon**: `team=4` (all teams) tried to load nonexistent `gym/4.png`, now maps to gray gym icon ([#66](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/66), [PR #67](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/67))
 - **Raid/egg "Any Team" selector**: sent `team=0` (uncontested gym) instead of `team=4` (all teams), silencing raid notifications for affected users ([#63](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/63), [PR #64](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/64))
