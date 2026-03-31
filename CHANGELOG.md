@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Fixed
-- raid/egg team selector sends 0 instead of 4 for Any Team ([PR #64](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/64))
+- **Raid/egg "Any Team" selector**: sent `team=0` (uncontested gym) instead of `team=4` (all teams), silencing raid notifications for affected users ([#63](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/63), [PR #64](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/64))
 - remove decorative circle from page headers ([PR #62](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/62))
 - DTS preview renders nested Handlebars if-blocks incorrectly ([PR #60](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/60))
 ## [1.0.2] - 2026-03-24
