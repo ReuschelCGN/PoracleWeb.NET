@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Added
+- distinct banner for admin-disabled users with support links ([PR #83](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/83))
 ## [1.2.0] - 2026-03-31
 
 ## [1.2.0] - 2026-03-31
