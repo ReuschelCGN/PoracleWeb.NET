@@ -18,7 +18,7 @@ docker-compose.override.yml
 appsettings.*.local.json
 
 ## Claude Code
-.claude/worktrees/
+.claude/
 
 ## IDE
 .idea/
