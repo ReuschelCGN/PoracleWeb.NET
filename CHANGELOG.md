@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Added
+- add dedicated Discord settings section to admin page ([PR #116](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/116))
 ## [2.1.3] - 2026-04-04
 
 ## [2.1.3] - 2026-04-04
