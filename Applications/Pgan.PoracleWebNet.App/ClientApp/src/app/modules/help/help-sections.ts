@@ -198,6 +198,15 @@ export const HELP_SECTIONS: HelpSection[] = [
 </ul>
 <p>Raid and Egg alarms are managed on separate tabs within the Raids page. Eggs also support gym-specific tracking and RSVP notifications.</p>
 
+<h4>Max Battle (Dynamax) Alarms</h4>
+<p>Get notified about Dynamax and Gigantamax battles at Power Spots.</p>
+<ul>
+<li><strong>By Level</strong> — Select battle tiers to track any Pokemon at those levels. Tiers range from 1 Star through 5 Star (Legendary) for Dynamax, plus Gigantamax and Legendary Gigantamax for the largest battles. One alarm is created per selected level.</li>
+<li><strong>By Pokemon</strong> — Select specific Pokemon you want to battle across all Max Battle levels. If the scanner database is configured, the selector is filtered to only show Pokemon that have appeared in Max Battles.</li>
+<li><strong>Gigantamax only</strong> — When tracking by Pokemon, toggle this to only receive notifications when that Pokemon appears in Gigantamax battles (the highest-tier battles with unique G-Max moves). For level-based tracking, Gigantamax is handled by selecting the Gigantamax or Legendary Gigantamax levels directly.</li>
+<li><strong>Select All</strong> — Quickly select all available levels at once (equivalent to the bot's <code>!maxbattle everything</code> command).</li>
+</ul>
+
 <h4>Quest Alarms</h4>
 <p>Get notified about field research tasks with specific rewards.</p>
 <ul>
@@ -346,6 +355,7 @@ export const HELP_SECTIONS: HelpSection[] = [
 <li><strong>Nests</strong> — Deleted when nests migrate</li>
 <li><strong>Gyms</strong> — Deleted after gym changes</li>
 <li><strong>Fort Changes</strong> — Deleted after fort change notification expires</li>
+<li><strong>Max Battles</strong> — Deleted when the battle ends</li>
 </ul>
 <p>Use <strong>Enable All</strong> or <strong>Disable All</strong> to toggle everything at once.</p>
 <div class="callout callout-tip"><span class="callout-icon">&#x1F4A1;</span><div><strong>Recommended:</strong> Keep clean mode enabled to prevent outdated alerts from piling up in your DMs.</div></div>`,

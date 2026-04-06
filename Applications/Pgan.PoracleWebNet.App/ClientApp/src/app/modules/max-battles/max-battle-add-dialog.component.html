@@ -1,0 +1,127 @@
+<h2 mat-dialog-title>Add Max Battle Alarm</h2>
+<mat-dialog-content>
+  <mat-tab-group animationDuration="200ms" class="alarm-tabs">
+    <!-- Tab 1: Selection -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>flash_on</mat-icon>
+        <span class="tab-label">Selection</span>
+      </ng-template>
+      <div class="tab-content">
+        <mat-tab-group [(selectedIndex)]="tabIndex">
+          <!-- By Level -->
+          <mat-tab label="By Level">
+            <div class="tab-content">
+              <p class="tab-hint">Track any Pokemon at these battle tiers. One alarm is created per selected level.</p>
+              <div class="level-grid">
+                @for (level of levels; track level.value) {
+                  <mat-checkbox [checked]="selectedLevels().includes(level.value)" (change)="toggleLevel(level.value)">
+                    <div class="level-label">
+                      <span class="level-stars">
+                        @if (level.gmax) {
+                          <mat-icon class="gmax-star">auto_awesome</mat-icon>
+                        } @else {
+                          @for (s of [].constructor(level.value); track $index) {
+                            <mat-icon class="star-icon">star</mat-icon>
+                          }
+                        }
+                      </span>
+                      <span>{{ level.label }}</span>
+                    </div>
+                  </mat-checkbox>
+                }
+              </div>
+              <button mat-stroked-button type="button" (click)="selectAllLevels()" class="select-all-btn">
+                <mat-icon>select_all</mat-icon> Select All
+              </button>
+            </div>
+          </mat-tab>
+
+          <!-- By Pokemon -->
+          <mat-tab label="By Pokemon">
+            <div class="tab-content">
+              <p class="tab-hint">Track specific Pokemon in Max Battles regardless of level.</p>
+              <app-pokemon-selector [multi]="true" [allowedIds]="maxBattlePokemonIds()" (selectionChange)="onPokemonSelected($event)" />
+              @if (selectedPokemonIds().length > 0) {
+                <p class="selection-count">{{ selectedPokemonIds().length }} Pokemon selected</p>
+              }
+              <mat-slide-toggle [formControl]="commonForm.controls.gmaxOnly" class="gmax-toggle"> Gigantamax only </mat-slide-toggle>
+              <p class="gmax-hint">When enabled, only notifies about Gigantamax battles for the selected Pokemon.</p>
+            </div>
+          </mat-tab>
+        </mat-tab-group>
+      </div>
+    </mat-tab>
+
+    <!-- Tab 2: Delivery -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon>notifications</mat-icon>
+        <span class="tab-label">Delivery</span>
+      </ng-template>
+      <div class="tab-content">
+        <h4>Location Mode</h4>
+        <mat-radio-group [formControl]="commonForm.controls.distanceMode" class="distance-radio-group" (change)="onDistanceModeChange()">
+          <mat-radio-button value="areas">
+            <div class="radio-label">
+              <mat-icon>map</mat-icon>
+              <div>
+                <strong>Use Areas</strong>
+                <p class="radio-hint">Notifications will use your configured area geofences</p>
+              </div>
+            </div>
+          </mat-radio-button>
+          <mat-radio-button value="distance">
+            <div class="radio-label">
+              <mat-icon>straighten</mat-icon>
+              <div>
+                <strong>Set Distance</strong>
+                <p class="radio-hint">Notify within a radius from your location</p>
+              </div>
+            </div>
+          </mat-radio-button>
+        </mat-radio-group>
+
+        @if (commonForm.controls.distanceMode.value === 'distance') {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Distance</mat-label>
+            <input matInput type="number" [formControl]="commonForm.controls.distanceKm" min="0" step="0.1" />
+            <span matSuffix>km</span>
+          </mat-form-field>
+        }
+
+        <app-delivery-preview
+          [mode]="commonForm.controls.distanceMode.value === 'areas' ? 'areas' : 'distance'"
+          [distanceKm]="commonForm.controls.distanceKm.value ?? 0">
+        </app-delivery-preview>
+
+        <h4>Message Settings</h4>
+        @if (isWebhook) {
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Ping / Role</mat-label>
+            <input matInput [formControl]="commonForm.controls.ping" placeholder="e.g. @role or empty" />
+          </mat-form-field>
+        }
+
+        <app-template-selector
+          [alarmType]="'maxbattle'"
+          [value]="commonForm.controls.template.value ?? ''"
+          (valueChange)="commonForm.controls.template.setValue($event)">
+        </app-template-selector>
+
+        <mat-slide-toggle [formControl]="commonForm.controls.clean"> Clean mode </mat-slide-toggle>
+        <p class="clean-hint">Automatically deletes the notification from Discord after the max battle ends</p>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="dialogRef.close(false)">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="saving() || !canSave()">
+    @if (saving()) {
+      <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+    }
+    {{ saving() ? 'Saving...' : 'Save' }}
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,123 @@
+mat-dialog-content {
+  min-width: 400px;
+  max-width: 600px;
+}
+.alarm-tabs {
+  margin: 0 -24px;
+}
+:host ::ng-deep .alarm-tabs .mat-mdc-tab-body-wrapper {
+  padding: 0 24px;
+}
+.tab-content {
+  padding: 16px 0;
+}
+.tab-label {
+  margin-left: 6px;
+}
+.item-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.item-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+.any-pokemon-icon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(213, 0, 249, 0.1);
+
+  mat-icon {
+    font-size: 36px;
+    width: 36px;
+    height: 36px;
+    color: #d500f9;
+  }
+}
+.item-header h3 {
+  margin: 0;
+}
+.item-subtitle {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 13px;
+}
+.gmax-badge {
+  display: inline-block;
+  background: rgba(224, 64, 251, 0.15);
+  color: #aa00ff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.gmax-option-hint {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 12px;
+  margin-left: 4px;
+}
+.info-text {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-size: 14px;
+  margin: 8px 0;
+}
+.full-width {
+  width: 100%;
+}
+h4 {
+  margin: 16px 0 8px;
+  color: var(--text-muted, rgba(0, 0, 0, 0.64));
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+mat-slide-toggle {
+  margin: 16px 0;
+}
+.gmax-toggle {
+  margin: 12px 0 4px;
+}
+.gmax-hint {
+  margin: 2px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+.distance-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.radio-label mat-icon {
+  margin-top: 2px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+.radio-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+  font-weight: normal;
+}
+.clean-hint {
+  margin: 4px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.54));
+}
+@media (max-width: 599px) {
+  mat-dialog-content {
+    min-width: 0;
+  }
+}

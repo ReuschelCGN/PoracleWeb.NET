@@ -94,6 +94,15 @@ export class App implements OnInit {
       route: '/raids',
     },
     {
+      countKey: 'maxBattles',
+      disableKey: 'disable_maxbattles',
+      group: 'alarms',
+      icon: 'flash_on',
+      iconColor: '#d500f9',
+      label: 'Max Battles',
+      route: '/max-battles',
+    },
+    {
       countKey: 'quests',
       disableKey: 'disable_quests',
       group: 'alarms',
