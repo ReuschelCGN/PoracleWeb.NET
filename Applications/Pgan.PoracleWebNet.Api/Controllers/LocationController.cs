@@ -9,13 +9,15 @@ public class LocationController(
     IProfileService profileService,
     IPoracleHumanProxy humanProxy,
     IPoracleApiProxy poracleApiProxy,
-    IHttpClientFactory httpClientFactory) : BaseApiController
+    IHttpClientFactory httpClientFactory,
+    IScannerService? scannerService = null) : BaseApiController
 {
     private readonly IHumanService _humanService = humanService;
     private readonly IProfileService _profileService = profileService;
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+    private readonly IScannerService? _scannerService = scannerService;
 
     [HttpGet]
     public async Task<IActionResult> GetLocation()
@@ -167,6 +169,84 @@ public class LocationController(
         }
         catch { }
         return this.NotFound();
+    }
+
+    [HttpGet("weather")]
+    public async Task<IActionResult> GetWeather()
+    {
+        if (this._scannerService == null)
+        {
+            return this.NoContent();
+        }
+
+        var profile = await this._profileService.GetByUserAndProfileNoAsync(this.UserId, this.ProfileNo);
+        double lat, lon;
+        if (profile != null)
+        {
+            lat = profile.Latitude;
+            lon = profile.Longitude;
+        }
+        else
+        {
+            var human = await this._humanService.GetByIdAsync(this.UserId);
+            if (human == null)
+            {
+                return this.NoContent();
+            }
+            lat = human.Latitude;
+            lon = human.Longitude;
+        }
+
+        if (lat == 0 && lon == 0)
+        {
+            return this.NoContent();
+        }
+
+        var weather = await this._scannerService.GetWeatherAtLocationAsync(lat, lon);
+        if (weather == null)
+        {
+            return this.NoContent();
+        }
+
+        return this.Ok(weather);
+    }
+
+    [HttpPost("weather/areas")]
+    public async Task<IActionResult> GetWeatherForAreas([FromBody] AreaWeatherRequest request)
+    {
+        if (this._scannerService == null || request.Locations == null || request.Locations.Length == 0)
+        {
+            return this.Ok(Array.Empty<object>());
+        }
+
+        // Compute S2 cell IDs for each location, deduplicating cells
+        var locationCells = request.Locations
+            .Where(l => l.Lat != 0 || l.Lon != 0)
+            .Select(l => new { l.Name, CellId = Core.Services.S2CellHelper.LatLonToWeatherCellId(l.Lat, l.Lon) })
+            .ToList();
+
+        var uniqueCellIds = locationCells.Select(l => l.CellId).Distinct();
+        var weatherByCell = await this._scannerService.GetWeatherForCellsAsync(uniqueCellIds);
+
+        // Map back to area names
+        var results = locationCells
+            .Where(l => weatherByCell.ContainsKey(l.CellId))
+            .Select(l => new { name = l.Name, weather = weatherByCell[l.CellId] })
+            .ToList();
+
+        return this.Ok(results);
+    }
+
+    public class AreaWeatherRequest
+    {
+        public AreaLocation[] Locations { get; set; } = [];
+    }
+
+    public class AreaLocation
+    {
+        public string Name { get; set; } = string.Empty;
+        public double Lat { get; set; }
+        public double Lon { get; set; }
     }
 
     public class LocationUpdateRequest

@@ -460,6 +460,23 @@ export interface PoracleServerStatus {
   online: boolean;
 }
 
+// ─── Weather ──────────────────────────────────────────────────────────────────
+
+export interface WeatherData {
+  boostedTypes: string[];
+  condition: number;
+  conditionName: string;
+  hasWarning: boolean;
+  icon: string;
+  severity: number;
+  updatedAt: string | null;
+}
+
+export interface AreaWeatherResult {
+  name: string;
+  weather: WeatherData;
+}
+
 // ─── Quick Picks ──────────────────────────────────────────────────────────────
 
 export interface QuickPickDefinition {
