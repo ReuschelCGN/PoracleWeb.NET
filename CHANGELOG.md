@@ -8,7 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- cross-profile alarm overview with profile management ([PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
+- **Unified Profiles page with alarm overview**: View all alarms across all profiles in one place with expandable accordion panels, type-grouped alarm cards with game asset images (Pokemon sprites, raid eggs, lure/gym icons), global search, and type filter chips. Uses PoracleNG's `allProfiles` endpoint. ([#127](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/127), [PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
+- **Profile backup & restore**: Export a profile's alarms as a portable JSON backup file (stripped of internal IDs). Import a backup to create a new profile with all alarms restored. Profile names auto-deduplicate on import. ([PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
+- **Duplicate detection across profiles**: Alarms matching the same filter on multiple profiles are highlighted with an orange indicator and filterable via a Duplicates chip. ([PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
+- **Profile name uniqueness**: Validated client-side on add, edit, duplicate, and import dialogs with inline error messages. ([PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
+
+### Fixed
+- **Profile rename not saving**: PoracleNG's profile update endpoint requires snake_case `profile_no`, not camelCase `profileNo`. ([PR #147](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/147))
 
 ### Fixed
 - **Raid card 9000 stars**: Guard `getLevelStars()` for sentinel value 9000, show "Any Level" label. Use descriptive level names (Level 6 → "Mega"). Show "All Raids" / "All Mega Raids" for level-based alarms. ([#138](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/138), [PR #144](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/144))
