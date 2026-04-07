@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- GeoJSON geofence export and import (#130) ([PR #155](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/155))
+
 ### Fixed
 - quest test alerts missing static maps ([PR #153](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/153))
 
