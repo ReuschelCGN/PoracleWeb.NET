@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Area overview map tile on dashboard ([PR #160](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/160))
 - **Profile active hours / schedule management UI** ([#158](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/158)) ([#159](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/159))
   - View and edit active hours on user profiles for automatic profile switching
   - Schedule editor dialog with day picker, time picker, and weekly preview
