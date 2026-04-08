@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Area overview map tile on dashboard ([PR #160](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/160))
+- **Area overview map on dashboard**: Non-interactive Leaflet mini-map showing selected areas as color-coded polygons. Lazy-loaded via `@defer(on viewport)` with zero additional API calls. Click navigates to the full Areas page. ([#129](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/129), [PR #160](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/160))
 - **Profile active hours / schedule management UI** ([#158](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/158)) ([#159](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/159))
   - View and edit active hours on user profiles for automatic profile switching
   - Schedule editor dialog with day picker, time picker, and weekly preview
