@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### Added
+- Multi-language / i18n support (11 languages) ([PR #162](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/162))
 ## [2.3.0] - 2026-04-08
 
 ## [2.3.0] - 2026-04-08
