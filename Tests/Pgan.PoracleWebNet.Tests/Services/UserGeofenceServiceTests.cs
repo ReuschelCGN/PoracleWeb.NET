@@ -16,7 +16,7 @@ public class UserGeofenceServiceTests
     private readonly Mock<IPoracleServerService> _poracleServerService = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly Mock<IHumanRepository> _humanRepo = new();
-    private readonly Mock<IProfileRepository> _profileRepo = new();
+    private readonly Mock<IUserAreaDualWriter> _areaWriter = new();
     private readonly Mock<IDiscordNotificationService> _discordNotificationService = new();
     private readonly Mock<ILogger<UserGeofenceService>> _logger = new();
     private readonly UserGeofenceService _sut;
@@ -28,7 +28,7 @@ public class UserGeofenceServiceTests
             this._poracleServerService.Object,
             this._humanProxy.Object,
             this._humanRepo.Object,
-            this._profileRepo.Object,
+            this._areaWriter.Object,
             this._discordNotificationService.Object,
             this._logger.Object);
 
@@ -115,7 +115,7 @@ public class UserGeofenceServiceTests
     }
 
     [Fact]
-    public async Task CreateAsyncUpdatesHumanAreaJsonArray()
+    public async Task CreateAsyncDelegatesAreaAddToAtomicWriter()
     {
         var model = new UserGeofenceCreate
         {
@@ -125,13 +125,14 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetCountByHumanIdAsync("u1")).ReturnsAsync(0);
         this._repository.Setup(r => r.CreateAsync(It.IsAny<UserGeofence>()))
             .ReturnsAsync((UserGeofence g) => g);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"existing_area\"]"));
 
         await this._sut.CreateAsync("u1", 1, model);
 
-        // Verify the proxy was called with both the existing area and the new one
-        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
-            a.Contains("existing_area") && a.Contains("park"))), Times.Once);
+        // The service must delegate the dual-write to the atomic IUserAreaDualWriter —
+        // going through IPoracleHumanProxy.SetAreasAsync would let PoracleNG strip the
+        // geofence because the feed serves it with userSelectable=false.
+        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "park"), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
     }
 
     [Fact]
@@ -198,17 +199,16 @@ public class UserGeofenceServiceTests
     // --- DeleteAsync ---
 
     [Fact]
-    public async Task DeleteAsyncRemovesFromHumanAreaAndDeletesRecord()
+    public async Task DeleteAsyncDelegatesRemoveAllToAtomicWriterAndDeletesRecord()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\",\"other_area\"]"));
 
         await this._sut.DeleteAsync("u1", 1, 1);
 
-        // Verify proxy was called to set areas without "downtown"
-        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
-            !a.Contains("downtown") && a.Contains("other_area"))), Times.Once);
+        // Atomic cross-profile removal goes through the writer, never the proxy.
+        this._areaWriter.Verify(w => w.RemoveAreaFromAllProfilesAsync("u1", "downtown"), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
         this._repository.Verify(r => r.DeleteAsync(1), Times.Once);
         this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
@@ -228,35 +228,6 @@ public class UserGeofenceServiceTests
         this._repository.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((UserGeofence?)null);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => this._sut.DeleteAsync("u1", 1, 99));
-    }
-
-    [Fact]
-    public async Task DeleteAsyncRemovesAreaFromAllProfiles()
-    {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        var profile1 = new Profile { Id = "u1", ProfileNo = 1, Area = "[\"downtown\",\"park\"]" };
-        var profile2 = new Profile { Id = "u1", ProfileNo = 2, Area = "[\"downtown\"]" };
-        var profile3 = new Profile { Id = "u1", ProfileNo = 3, Area = "[\"park\"]" };
-
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        // Active profile removal goes through proxy
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\",\"other\"]"));
-        // Non-active profile cleanup goes through direct DB
-        this._profileRepo.Setup(r => r.GetByUserAsync("u1")).ReturnsAsync([profile1, profile2, profile3]);
-        this._profileRepo.Setup(r => r.UpdateAsync(It.IsAny<Profile>())).ReturnsAsync((Profile p) => p);
-
-        await this._sut.DeleteAsync("u1", 1, 1);
-
-        // Proxy should be called to remove "downtown" from active profile areas
-        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
-            !a.Contains("downtown") && a.Contains("other"))), Times.Once);
-        // Profile 1 and 2 had "downtown" and should be updated via direct DB
-        Assert.DoesNotContain("downtown", profile1.Area);
-        Assert.DoesNotContain("downtown", profile2.Area);
-        Assert.Contains("park", profile1.Area);
-        // Profile 3 never had "downtown", should not be updated
-        this._profileRepo.Verify(r => r.UpdateAsync(profile3), Times.Never);
-        this._profileRepo.Verify(r => r.UpdateAsync(It.IsAny<Profile>()), Times.Exactly(2));
     }
 
     // --- SubmitForReviewAsync ---
@@ -942,16 +913,40 @@ public class UserGeofenceServiceTests
     // --- AddToProfileAsync ---
 
     [Fact]
-    public async Task AddToProfileAsyncAddsAreaNameViaProxy()
+    public async Task AddToProfileAsyncDelegatesToAtomicWriterAndTriggersReload()
     {
+        // Regression guard for #163: the toggle must actually persist. Before #88 the toggle
+        // wrote directly to humans.area. The proxy migration in #88 routed it through
+        // PoracleNG's setAreas, which silently strips every fence with userSelectable=false —
+        // the default for user geofences — so the toggle appeared to succeed but never
+        // actually persisted. We restored the direct-DB path through IUserAreaDualWriter.
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"existing\"]"));
 
         await this._sut.AddToProfileAsync("u1", 1, 1);
 
-        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
-            a.Contains("downtown") && a.Contains("existing"))), Times.Once);
+        this._areaWriter.Verify(w => w.AddAreaToActiveProfileAsync("u1", "downtown"), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        // Direct-DB writes bypass PoracleNG's internal reloadState, so we must trigger one
+        // ourselves. Without this, the toggle would only take effect on the next organic
+        // PoracleNG state reload (potentially minutes).
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddToProfileAsyncPropagatesWriterExceptionsAsNotFound()
+    {
+        // The writer throws InvalidOperationException if humans row doesn't exist
+        // (TOCTOU: user deleted mid-request). It must propagate so the controller returns 404
+        // instead of a misleading 204 "success".
+        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
+        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
+        this._areaWriter
+            .Setup(w => w.AddAreaToActiveProfileAsync("u1", "downtown"))
+            .ThrowsAsync(new InvalidOperationException("Human with id u1 not found."));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => this._sut.AddToProfileAsync("u1", 1, 1));
     }
 
     [Fact]
@@ -971,34 +966,25 @@ public class UserGeofenceServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => this._sut.AddToProfileAsync("u1", 1, 1));
-    }
-
-    [Fact]
-    public async Task AddToProfileAsyncIsIdempotent()
-    {
-        var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
-        this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"downtown\"]"));
-
-        await this._sut.AddToProfileAsync("u1", 1, 1);
-
-        // Already contains "downtown", so SetAreasAsync should not be called
-        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        // Writer must not be touched when ownership check fails.
+        this._areaWriter.Verify(
+            w => w.AddAreaToActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     // --- RemoveFromProfileAsync ---
 
     [Fact]
-    public async Task RemoveFromProfileAsyncRemovesAreaNameViaProxy()
+    public async Task RemoveFromProfileAsyncDelegatesToAtomicWriterAndTriggersReload()
     {
         var geofence = new UserGeofence { Id = 1, HumanId = "u1", KojiName = "downtown" };
         this._repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(geofence);
-        this._humanProxy.Setup(p => p.GetHumanAsync("u1")).ReturnsAsync(MakeHumanJson("u1", "[\"existing\",\"downtown\"]"));
 
         await this._sut.RemoveFromProfileAsync("u1", 1, 1);
 
-        this._humanProxy.Verify(p => p.SetAreasAsync("u1", It.Is<string[]>(a =>
-            !a.Contains("downtown") && a.Contains("existing"))), Times.Once);
+        this._areaWriter.Verify(w => w.RemoveAreaFromActiveProfileAsync("u1", "downtown"), Times.Once);
+        this._humanProxy.Verify(p => p.SetAreasAsync(It.IsAny<string>(), It.IsAny<string[]>()), Times.Never);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
     }
 
     [Fact]
@@ -1009,5 +995,91 @@ public class UserGeofenceServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => this._sut.RemoveFromProfileAsync("u1", 1, 1));
+        this._areaWriter.Verify(
+            w => w.RemoveAreaFromActiveProfileAsync(It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    // --- PreserveOwnedAreasInHumanAsync ---
+
+    [Fact]
+    public async Task PreserveOwnedAreasInHumanAsyncFiltersCandidatesToUserOwnedAndBulkWrites()
+    {
+        // Scenario: user saves the Areas page with a mix of admin areas and their own custom
+        // geofences. PoracleNG's setAreas strips the user geofences; this method re-adds only
+        // the names the user actually owns, and does it in a single bulk writer call so the
+        // whole merge costs one DB round-trip regardless of how many geofences the user has.
+        var owned = new List<UserGeofence>
+        {
+            new() { Id = 1, HumanId = "u1", KojiName = "my park" },
+            new() { Id = 2, HumanId = "u1", KojiName = "my square" },
+        };
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(owned);
+
+        string[] candidates = ["downtown", "my park", "my square", "not-owned-area"];
+        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", candidates);
+
+        // Only "my park" and "my square" are owned — downtown is an admin area, "not-owned-area"
+        // is noise. Both get returned and passed to the bulk writer.
+        Assert.Equal(2, restored.Count);
+        Assert.Contains("my park", restored);
+        Assert.Contains("my square", restored);
+        Assert.DoesNotContain("downtown", restored);
+        Assert.DoesNotContain("not-owned-area", restored);
+
+        // The bulk writer must be called ONCE with exactly the owned subset — no per-name loop.
+        this._areaWriter.Verify(
+            w => w.AddAreasToActiveProfileAsync(
+                "u1",
+                It.Is<IReadOnlyCollection<string>>(c =>
+                    c.Count == 2 && c.Contains("my park") && c.Contains("my square"))),
+            Times.Once);
+        // Reload must fire so PoracleNG picks up the merged state.
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task PreserveOwnedAreasInHumanAsyncSkipsWriterAndReloadWhenNothingToRestore()
+    {
+        // If no candidates match owned geofences, the direct-DB path is a no-op and we
+        // should NOT trigger a reload — PoracleNG already reloaded after the caller's
+        // own setAreas call and a second reload would be wasted work.
+        var owned = new List<UserGeofence>
+        {
+            new() { Id = 1, HumanId = "u1", KojiName = "my park" },
+        };
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync(owned);
+
+        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", ["downtown", "central"]);
+
+        Assert.Empty(restored);
+        this._areaWriter.Verify(
+            w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
+        this._poracleApiProxy.Verify(p => p.ReloadGeofencesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task PreserveOwnedAreasInHumanAsyncReturnsEmptyWhenNoCandidates()
+    {
+        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", []);
+        Assert.Empty(restored);
+        this._repository.Verify(r => r.GetByHumanIdAsync(It.IsAny<string>()), Times.Never);
+        this._areaWriter.Verify(
+            w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PreserveOwnedAreasInHumanAsyncReturnsEmptyWhenUserOwnsNothing()
+    {
+        this._repository.Setup(r => r.GetByHumanIdAsync("u1")).ReturnsAsync([]);
+
+        var restored = await this._sut.PreserveOwnedAreasInHumanAsync("u1", ["downtown"]);
+
+        Assert.Empty(restored);
+        this._areaWriter.Verify(
+            w => w.AddAreasToActiveProfileAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()),
+            Times.Never);
     }
 }

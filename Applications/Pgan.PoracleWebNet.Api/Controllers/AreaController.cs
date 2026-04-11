@@ -5,10 +5,15 @@ using Pgan.PoracleWebNet.Core.Abstractions.Services;
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/areas")]
-public partial class AreaController(IPoracleHumanProxy humanProxy, IPoracleApiProxy poracleApiProxy, ILogger<AreaController> logger) : BaseApiController
+public partial class AreaController(
+    IPoracleHumanProxy humanProxy,
+    IPoracleApiProxy poracleApiProxy,
+    IUserGeofenceService userGeofenceService,
+    ILogger<AreaController> logger) : BaseApiController
 {
     private readonly IPoracleHumanProxy _humanProxy = humanProxy;
     private readonly IPoracleApiProxy _poracleApiProxy = poracleApiProxy;
+    private readonly IUserGeofenceService _userGeofenceService = userGeofenceService;
     private readonly ILogger<AreaController> _logger = logger;
 
     [HttpGet]
@@ -57,8 +62,23 @@ public partial class AreaController(IPoracleHumanProxy humanProxy, IPoracleApiPr
             ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
             : [];
 
-        // PoracleNG handles the dual-write to humans.area + profiles.area atomically
+        // PoracleNG handles the dual-write to humans.area + profiles.area atomically.
+        // It also silently filters out any area name whose fence has userSelectable=false,
+        // which includes every user-drawn custom geofence (PoracleWeb's feed serves them
+        // as userSelectable=false to hide them from the Poracle bot's area picker).
         await this._humanProxy.SetAreasAsync(this.UserId, normalizedAreas);
+
+        // HACK: trusted-set-areas (see docs/poracleng-enhancement-requests.md)
+        // Re-add any user-owned custom geofences that were in the submitted list by writing
+        // directly to humans.area + active profiles.area — bypassing the setAreas filter.
+        // Without this merge, saving on the Areas page would strip every user geofence the
+        // user has activated via the Geofences page. Remove this call once PoracleNG ships
+        // a trusted setAreas variant that skips the userSelectable intersection.
+        //
+        // The returned list is always a subset of `normalizedAreas` (it's filtered down to the
+        // user-owned subset), so the effective response is just `normalizedAreas` — no Union
+        // needed. The discard is intentional.
+        _ = await this._userGeofenceService.PreserveOwnedAreasInHumanAsync(this.UserId, normalizedAreas);
 
         return this.Ok(normalizedAreas);
     }
