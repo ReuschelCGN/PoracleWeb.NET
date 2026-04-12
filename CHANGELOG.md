@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Automated PR labeling and release-notes generation**: new `pr-labeler.yml` workflow applies conventional labels (`feat`, `fix`, `perf`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`, `breaking`) based on branch prefix (`feat/`, `fix/`, etc.) or PR title (Conventional Commits). `.github/release.yml` groups labeled PRs into sections when using GitHub's "Generate release notes" button on a new release. Branch naming convention documented in README.
 - **Dependabot configuration**: weekly (Monday) updates for NuGet, npm (ClientApp), GitHub Actions, and Docker base images. Grouped bumps for Angular, ESLint, Jest, and Microsoft stacks to avoid PR floods. Angular/Material major versions intentionally pinned — coordinated upgrades are done manually.
 
+### Fixed
+- Documentation branding: replaced 88 remaining bare `PoracleWeb` references with `PoracleWeb.NET` across 16 files under `docs/`, completing the branding cleanup from PR #180. URLs, path identifiers, `.csproj` names, and Mermaid diagram node IDs were preserved.
+
 ## [2.6.0] - 2026-04-12
 
 ### Added
