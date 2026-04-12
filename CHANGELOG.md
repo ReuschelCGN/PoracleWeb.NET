@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-04-12
+
 ### Fixed
 - **Test alert DMs now satisfy the alarm's own filter** ([#165](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/165)): Clicking Test Alert on a "Great League rank 1-1 Tinkaton" filter previously delivered a DM with IVs 1/14/14 at L25.5 — values that didn't satisfy the filter being tested — because `TestAlertService.BuildPokemonWebhook` hardcoded IVs to 15/15/15, level to 35, CP to 2500, and shipped literal `pvp_rankings_great_league`/`_ultra_league` arrays with `rank: 1` regardless of the alarm's configured filter. PoracleNG's render pipeline then faithfully enriched the lies. Rewrote the monolithic builder as six `ITestPayloadBuilder` implementations under `Core.Services/TestAlerts/`, each reading the alarm's own filter columns and emitting matching raw webhook values aligned to the live PGAN DTS template variable set. Ported gohbem's PVP rank calculator (`Core.Services/Pvp/PvpRankCalculator` + 109-entry `CpMultiplierTable`) to resolve PVP-filter alarms to real rank-matching IV/level/CP combos — GL rank 1 Tinkaton now renders as 13/15/15 L49.5 CP 1498 with a matching single-entry PVP rank panel. Rank tables cached per `(pokemonId, form, league)` via `IPvpRankService` + `IMemoryCache` with no TTL (~16 KB per species, O(1) after the first ~1 ms sweep). Extended `MasterDataService` to expose per-species `baseAttack`/`baseDefense`/`baseStamina` from the WatWowMap Masterfile. Every builder honors the full filter field set: IV floors/ceilings, `min_iv`/`max_iv`, `min_level`/`max_level`, `min_cp`/`max_cp`, `form`, `gender`, `size`, and league-aware PVP rank windows. Also aligned raid/egg wire fields to the live PGAN DTS convention (`name`+`url`, not `gym_name`/`gym_url`), merged `egg` into the `raid` wire type (`pokemon_id=0`), fixed a latent quest-webhook `template` field collision with the in-game quest template key, and corrected invasion field names (`name`/`incident_grunt_type`/`incident_expiration`). 24 new payload assertion tests pin the filter-to-wire contract plus 19 PVP algorithm property tests. ([PR #166](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/166))
 - custom geofence toggle not persisting (#163) ([PR #164](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/164))
@@ -425,7 +427,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.4.1...HEAD
+[2.4.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.3.0...v2.4.1
 [2.4.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.2.0...v2.3.0
 [2.3.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v2.2.0...v2.3.0
