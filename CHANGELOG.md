@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Bump the microsoft group with 10 updates ([PR #190](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/190))
 - bump the angular group across 1 directory with 13 updates ([PR #189](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/189))
 
 ### Added
