@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-04-12
+
 ### Added
 - **Signup page redirect for non-registered users** ([#168](https://github.com/PGAN-Dev/PoracleWeb.NET/issues/168), [PR #171](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/171)): New admin-configurable `signup_url` site setting (Settings > Analytics & Links) displays a green "Sign Up" button on the login page. When a non-registered user attempts to log in via Discord or Telegram and receives a `user_not_registered` or `missing_required_role` error, the signup button directs them to the configured registration page. The signup URL is served exclusively via the trusted `GET /api/settings/public` endpoint — never passed through URL fragments — to prevent open-redirect phishing attacks. Button hidden when no URL is configured.
 - **Internationalized ~45 hardcoded UI strings** ([PR #171](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/171)): Extracted hardcoded English strings into i18n translation keys across all 11 supported languages: auth error messages (9 keys in `AUTH.ERR_*`), HTTP error toasts (6 keys in `ERROR.*`), test alert snackbar messages (5 keys in `TEST_ALERT.*`), admin settings messages (4 keys in `ADMIN_SETTINGS.*`), fort change dialog messages (4 keys in `FORT_CHANGES.*`), max battle level labels and messages (11 keys in `MAX_BATTLES.*`), and template selector condition labels (15 keys in `TEMPLATE.COND_*`).
