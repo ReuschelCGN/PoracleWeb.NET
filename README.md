@@ -40,7 +40,6 @@ See the [Quick Start guide](https://pgan-dev.github.io/PoracleWeb.NET/getting-st
 - **Profile Active Hours** — Schedule automatic profile switching by day and time
 - **DTS Preview** — Live Discord notification template preview
 - **Dark/Light Mode** — Theme toggle with accent color customization
-- **Server Management** — Monitor and restart PoracleJS instances remotely
 - **18 Languages** — Pokemon name localization
 - **Admin Panel** — User management, webhooks, settings, geofence review
 
@@ -53,7 +52,6 @@ Full documentation is available at **[pgan-dev.github.io/PoracleWeb.NET](https:/
 - [Configuration Reference](https://pgan-dev.github.io/PoracleWeb.NET/configuration/reference/)
 - [Architecture Overview](https://pgan-dev.github.io/PoracleWeb.NET/architecture/overview/)
 - [Custom Geofences](https://pgan-dev.github.io/PoracleWeb.NET/features/custom-geofences/)
-- [Server Management](https://pgan-dev.github.io/PoracleWeb.NET/features/server-management/)
 - [Troubleshooting](https://pgan-dev.github.io/PoracleWeb.NET/troubleshooting/)
 
 ## Development
