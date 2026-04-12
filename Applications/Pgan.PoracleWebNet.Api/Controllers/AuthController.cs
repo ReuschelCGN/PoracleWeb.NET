@@ -46,17 +46,8 @@ public partial class AuthController(
     [HttpGet("discord/login")]
     public async Task<IActionResult> DiscordLogin()
     {
-        // Gate: block if admin has explicitly disabled Discord login (PoracleWeb.NET site setting).
-        // Uses GetValueAsync (not GetBoolAsync) so missing/null = enabled (safe default, prevents lockout).
-        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
-        if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
-        {
-            LogAuthMethodDisabled(this._logger, "Discord");
-            return this.BadRequest(new
-            {
-                error = "Discord authentication is not enabled."
-            });
-        }
+        // No early gate here — admins must be able to log in even when Discord is disabled.
+        // The enable_discord check is enforced in DiscordCallback() after we know whether the user is an admin.
 
         // Generate a random state value for CSRF protection
         var state = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
@@ -109,14 +100,6 @@ public partial class AuthController(
     {
         // Derive frontend URL from the request
         var frontendUrl = this.GetFrontendUrl();
-
-        // Defense-in-depth: reject callback if Discord login was disabled between redirect and callback
-        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
-        if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
-        {
-            LogAuthMethodDisabled(this._logger, "Discord");
-            return this.Redirect($"{frontendUrl}/login#error=discord_disabled");
-        }
 
         // Validate OAuth state parameter for CSRF protection
         var savedState = this.Request.Cookies["oauth_state"];
@@ -187,6 +170,15 @@ public partial class AuthController(
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(discordId);
         if (!isAdmin)
         {
+            // Enforce enable_discord site setting for non-admin users.
+            // Admins can always log in so they can re-enable the setting.
+            var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
+            if (string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase))
+            {
+                LogAuthMethodDisabled(this._logger, "Discord");
+                return this.Redirect($"{frontendUrl}/login#error=discord_disabled");
+            }
+
             var roleCheckResult = await this.CheckRoleAccessAsync(discordId);
             if (roleCheckResult != null)
             {
@@ -240,16 +232,8 @@ public partial class AuthController(
             });
         }
 
-        // Also check PoracleWeb.NET site setting (admin runtime toggle, separate from PoracleNG config above)
-        var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
-        if (string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase))
-        {
-            LogAuthMethodDisabled(this._logger, "Telegram");
-            return this.BadRequest(new
-            {
-                error = "Telegram authentication is not enabled."
-            });
-        }
+        // The enable_telegram site setting (admin runtime toggle) is checked after authentication
+        // so that admins can still log in even when Telegram is disabled for regular users.
 
         // Validate auth_date is not older than 86400 seconds (24 hours)
         if (telegramData.TryGetValue("auth_date", out var authDateStr) &&
@@ -309,6 +293,21 @@ public partial class AuthController(
 
         var (isAdmin, managedWebhooks) = await this.GetRolesAsync(telegramId);
 
+        // Enforce enable_telegram site setting for non-admin users.
+        // Admins can always log in so they can re-enable the setting.
+        if (!isAdmin)
+        {
+            var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
+            if (string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase))
+            {
+                LogAuthMethodDisabled(this._logger, "Telegram");
+                return this.BadRequest(new
+                {
+                    error = "Telegram login is disabled for non-admin users."
+                });
+            }
+        }
+
         var userInfo = new UserInfo
         {
             Id = telegramId,
@@ -346,6 +345,50 @@ public partial class AuthController(
         {
             enabled = this._telegramSettings.Enabled && !disabledBySetting,
             botUsername = this._telegramSettings.BotUsername
+        });
+    }
+
+    /// <summary>
+    /// Returns auth provider availability for the login page. Combines server-side
+    /// .env/appsettings configuration ("configured") with admin-togglable site
+    /// settings ("enabled"). The login page uses this to decide which buttons to
+    /// render and whether to show a "disabled by admin" message.
+    /// </summary>
+    [AllowAnonymous]
+    [EnableRateLimiting("auth-read")]
+    [HttpGet("providers")]
+    public async Task<IActionResult> Providers()
+    {
+        // Discord is "configured" if the server has ClientId and ClientSecret (validated at startup).
+        var discordConfigured = !string.IsNullOrEmpty(this._discordSettings.ClientId)
+                                && !string.IsNullOrEmpty(this._discordSettings.ClientSecret);
+
+        // Telegram is "configured" if Telegram:Enabled is true in .env/appsettings
+        // (auto-inferred by Program.cs when bot credentials are present).
+        var telegramConfigured = this._telegramSettings.Enabled;
+
+        // Admin can disable either provider at runtime via site_settings without restart.
+        // Absent/null = enabled (safe default — prevents lockout on first-time setup).
+        // Sequential awaits — EF Core DbContext is not thread-safe so Task.WhenAll is not viable.
+        var discordSetting = await this._siteSettingService.GetValueAsync(EnableDiscordKey);
+        var discordDisabledByAdmin = string.Equals(discordSetting, "false", StringComparison.OrdinalIgnoreCase);
+
+        var telegramSetting = await this._siteSettingService.GetValueAsync(EnableTelegramKey);
+        var telegramDisabledByAdmin = string.Equals(telegramSetting, "false", StringComparison.OrdinalIgnoreCase);
+
+        return this.Ok(new
+        {
+            discord = new
+            {
+                configured = discordConfigured,
+                enabledByAdmin = !discordDisabledByAdmin,
+            },
+            telegram = new
+            {
+                configured = telegramConfigured,
+                enabledByAdmin = !telegramDisabledByAdmin,
+                botUsername = telegramConfigured ? this._telegramSettings.BotUsername : string.Empty,
+            },
         });
     }
 
