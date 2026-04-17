@@ -154,12 +154,14 @@ The scanner DB (`ScannerDb` connection string) is optional. When not configured,
 
 ### Gym search endpoints
 
-`ScannerController` exposes two gym endpoints backed by `RdmScannerService`:
+`ScannerController` exposes two gym endpoints backed by `ScannerService`:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /api/scanner/gyms?search=term&limit=20` | Search gyms by name (LIKE `%term%`). Minimum 2-character query, limit capped at 50. |
-| `GET /api/scanner/gyms/{id}` | Return a single gym by its ID. |
+| `GET /api/scanner/gyms?search=term&limit=20` | Search gyms by name prefix (`term%`, index-sargable). User input is escaped for LIKE wildcards (`%`, `_`, `\`). Search length 2--100 chars; `limit` clamped to `[1, 50]`. |
+| `GET /api/scanner/gyms/{id}` | Return a single gym by its ID (max 128 chars). |
+
+Both endpoints are rate-limited under the `scanner-search` policy (60 requests/min per IP).
 
 Both endpoints resolve the gym's area name by running point-in-polygon checks against cached Koji admin geofences (via `IKojiService.GetAdminGeofencesAsync()`). The first matching fence name is set on the result's `Area` property.
 
@@ -179,9 +181,9 @@ Graceful fallback: if the scanner DB is unreachable or the query fails, the sear
 | `TeamId` | `int?` | Controlling team (0 = neutral) |
 | `Area` | `string?` | Resolved at request time via point-in-polygon, not stored |
 
-### RdmGymEntity.Url
+### ScannerGymEntity.Url
 
-The `RdmGymEntity` in the scanner context maps the `url` column from the `gym` table, providing gym photo thumbnail URLs to `GymSearchResult`.
+The `ScannerGymEntity` in the scanner context maps the `url` column from the `gym` table, providing gym photo thumbnail URLs to `GymSearchResult`.
 
 ### PointInPolygon
 
@@ -207,17 +209,19 @@ Caches Golbat availability data in `IMemoryCache` with a 5-minute absolute expir
 
 ## Weather data
 
-Weather data is served via `IScannerService` from the scanner DB (`RdmWeatherEntity`). `RdmScannerService` fetches weather cells using S2 cell geometry (`S2CellHelper`) and returns `WeatherData` models with cell polygons and gameplay weather conditions. The `LocationController` exposes weather data alongside the user's location. Weather is optional -- when the scanner DB is not configured, weather endpoints return empty results.
+Weather data is served via `IScannerService` from the scanner DB (`ScannerWeatherEntity`). `ScannerService` fetches weather cells using S2 cell geometry (`S2CellHelper`) and returns `WeatherData` models with cell polygons and gameplay weather conditions. The `LocationController` exposes weather data alongside the user's location. Weather is optional -- when the scanner DB is not configured, weather endpoints return empty results.
 
 ## Rate limiting
 
-Auth endpoints use **per-IP** partitioned rate limiting:
+Sensitive endpoints use **per-IP** partitioned rate limiting:
 
-| Policy | Limit | Window |
-|---|---|---|
-| `auth` | 30 requests | 60 seconds |
-| `auth-read` | 120 requests | 60 seconds |
-| `test-alert` | 5 requests | 60 seconds |
+| Policy | Limit | Window | Applied to |
+|---|---|---|---|
+| `auth` | 30 requests | 60 seconds | Login / callback / token exchange |
+| `auth-read` | 120 requests | 60 seconds | Current user, profile switch |
+| `test-alert` | 5 requests | 60 seconds | Test-alert sends |
+| `geojson-import` | 5 requests | 60 seconds | Admin GeoJSON import |
+| `scanner-search` | 60 requests | 60 seconds | Scanner gym search / lookup |
 
 Configured in `Program.cs` using `RateLimitPartition.GetFixedWindowLimiter` keyed by `RemoteIpAddress`.
 
