@@ -16,7 +16,13 @@ public class EggServiceTests
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
     private readonly EggService _sut;
 
-    public EggServiceTests() => this._sut = new EggService(this._proxy.Object);
+    private readonly Mock<IFeatureGate> _featureGate = new();
+
+    public EggServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new EggService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsEggs()
@@ -171,6 +177,34 @@ public class EggServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("egg", "u")).ReturnsAsync(json);
 
         Assert.Equal(5, await this._sut.CountByUserAsync("u", 1));
+    }
+
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        // Eggs share the disable_raids toggle (no separate disable_eggs key — eggs share raid UI).
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Raids))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Raids));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new Egg()));
+
+        Assert.Equal(DisableFeatureKeys.Raids, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Raids))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Raids));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<Egg> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)

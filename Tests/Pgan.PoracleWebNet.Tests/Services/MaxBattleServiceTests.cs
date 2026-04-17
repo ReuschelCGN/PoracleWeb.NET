@@ -15,9 +15,14 @@ public class MaxBattleServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly MaxBattleService _sut;
 
-    public MaxBattleServiceTests() => this._sut = new MaxBattleService(this._proxy.Object, Mock.Of<ILogger<MaxBattleService>>());
+    public MaxBattleServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new MaxBattleService(this._proxy.Object, this._featureGate.Object, Mock.Of<ILogger<MaxBattleService>>());
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsMaxBattles()
@@ -282,6 +287,33 @@ public class MaxBattleServiceTests
         Assert.NotNull(result);
         Assert.Equal(1, result!.Gmax);
         Assert.Equal("station123", result.StationId);
+    }
+
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.MaxBattles));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new MaxBattle()));
+
+        Assert.Equal(DisableFeatureKeys.MaxBattles, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.MaxBattles))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.MaxBattles));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<MaxBattle> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)

@@ -14,9 +14,14 @@ public class RaidServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly RaidService _sut;
 
-    public RaidServiceTests() => this._sut = new RaidService(this._proxy.Object);
+    public RaidServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new RaidService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsRaids()
@@ -184,6 +189,33 @@ public class RaidServiceTests
         this._proxy.Setup(p => p.GetByUserAsync("raid", "u")).ReturnsAsync(json);
 
         Assert.Equal(7, await this._sut.CountByUserAsync("u", 1));
+    }
+
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Raids))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Raids));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new Raid()));
+
+        Assert.Equal(DisableFeatureKeys.Raids, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Raids))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Raids));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<Raid> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)

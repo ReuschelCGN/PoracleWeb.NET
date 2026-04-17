@@ -3,18 +3,22 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Pgan.PoracleWebNet.Api.Controllers;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Tests.Controllers;
 
 public class TestAlertControllerTests : ControllerTestBase
 {
     private readonly Mock<ITestAlertService> _service = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly Mock<ILogger<TestAlertController>> _logger = new();
     private readonly TestAlertController _sut;
 
     public TestAlertControllerTests()
     {
-        this._sut = new TestAlertController(this._service.Object, this._logger.Object);
+        // Default: no feature is disabled. Individual tests can override.
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new TestAlertController(this._service.Object, this._featureGate.Object, this._logger.Object);
         SetupUser(this._sut);
     }
 
@@ -85,5 +89,42 @@ public class TestAlertControllerTests : ControllerTestBase
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(500, statusResult.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("pokemon", DisableFeatureKeys.Pokemon)]
+    [InlineData("raid", DisableFeatureKeys.Raids)]
+    [InlineData("egg", DisableFeatureKeys.Raids)]
+    [InlineData("quest", DisableFeatureKeys.Quests)]
+    [InlineData("invasion", DisableFeatureKeys.Invasions)]
+    [InlineData("lure", DisableFeatureKeys.Lures)]
+    [InlineData("nest", DisableFeatureKeys.Nests)]
+    [InlineData("gym", DisableFeatureKeys.Gyms)]
+    public async Task SendTestAlertThrowsFeatureDisabledExceptionWhenFeatureDisabled(string type, string disableKey)
+    {
+        // #236: when an admin has disabled a type, non-admin users must not be able to fire test alerts for it.
+        // The exception is mapped to HTTP 403 by the global FeatureDisabledExceptionFilter.
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(disableKey))
+            .ThrowsAsync(new FeatureDisabledException(disableKey));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(() => this._sut.SendTestAlert(type, 1));
+
+        Assert.Equal(disableKey, ex.DisableKey);
+        this._service.Verify(s => s.SendTestAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SendTestAlertAdminAlsoBlockedByDisabledFeature()
+    {
+        // Admins are not exempt — the toggle means "nobody fires this alarm type." See #236.
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Pokemon))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Pokemon));
+        SetupUser(this._sut, isAdmin: true);
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(() => this._sut.SendTestAlert("pokemon", 1));
+
+        this._service.Verify(s => s.SendTestAlertAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>()), Times.Never);
     }
 }

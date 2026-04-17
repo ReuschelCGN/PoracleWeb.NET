@@ -15,10 +15,15 @@ public class FortChangeServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly FortChangeService _sut;
     private static readonly string[] stringArray = ["name", "location"];
 
-    public FortChangeServiceTests() => this._sut = new FortChangeService(this._proxy.Object);
+    public FortChangeServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new FortChangeService(this._proxy.Object, this._featureGate.Object);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsFortChanges()
@@ -164,6 +169,33 @@ public class FortChangeServiceTests
         var results = new List<ValidationResult>();
         var isValid = Validator.TryValidateObject(model, new ValidationContext(model), results, validateAllProperties: true);
         Assert.Equal(expected, isValid);
+    }
+
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.FortChanges))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.FortChanges));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new FortChange()));
+
+        Assert.Equal(DisableFeatureKeys.FortChanges, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.FortChanges))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.FortChanges));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<FortChange> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)

@@ -1,16 +1,21 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Pgan.PoracleWebNet.Core.Abstractions.Services;
+using Pgan.PoracleWebNet.Core.Models;
 
 namespace Pgan.PoracleWebNet.Api.Controllers;
 
 [Route("api/test-alert")]
 [EnableRateLimiting("test-alert")]
-public partial class TestAlertController(ITestAlertService testAlertService, ILogger<TestAlertController> logger) : BaseApiController
+public partial class TestAlertController(
+    ITestAlertService testAlertService,
+    IFeatureGate featureGate,
+    ILogger<TestAlertController> logger) : BaseApiController
 {
     private static readonly HashSet<string> ValidTypes = ["pokemon", "raid", "egg", "quest", "invasion", "lure", "nest", "gym"];
 
     private readonly ILogger<TestAlertController> _logger = logger;
+    private readonly IFeatureGate _featureGate = featureGate;
     private readonly ITestAlertService _testAlertService = testAlertService;
 
     [HttpPost("{type}/{uid:int}")]
@@ -22,6 +27,15 @@ public partial class TestAlertController(ITestAlertService testAlertService, ILo
             {
                 error = $"Invalid alarm type: {type}"
             });
+        }
+
+        // Reuses the centralized type→disable-key map and the same FeatureGate the alarm services
+        // and resource filter use — so a future tweak (new alarm type, key rename) only touches
+        // DisableFeatureKeys, not this controller. Throws FeatureDisabledException → global
+        // FeatureDisabledExceptionFilter returns 403 with disableKey body. (#236)
+        if (DisableFeatureKeys.ByTrackingType.TryGetValue(type, out var disableKey))
+        {
+            await this._featureGate.EnsureEnabledAsync(disableKey);
         }
 
         try

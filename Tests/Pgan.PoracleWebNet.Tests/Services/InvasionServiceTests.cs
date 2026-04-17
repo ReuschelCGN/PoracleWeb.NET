@@ -16,9 +16,14 @@ public class InvasionServiceTests
     };
 
     private readonly Mock<IPoracleTrackingProxy> _proxy = new();
+    private readonly Mock<IFeatureGate> _featureGate = new();
     private readonly InvasionService _sut;
 
-    public InvasionServiceTests() => this._sut = new InvasionService(this._proxy.Object, NullLogger<InvasionService>.Instance);
+    public InvasionServiceTests()
+    {
+        this._featureGate.Setup(g => g.EnsureEnabledAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+        this._sut = new InvasionService(this._proxy.Object, this._featureGate.Object, NullLogger<InvasionService>.Instance);
+    }
 
     [Fact]
     public async Task GetByUserAsyncReturnsInvasions()
@@ -244,7 +249,7 @@ public class InvasionServiceTests
         // the new row is already correct; log at Warning so the stale dup is discoverable.
         var logger = new Mock<ILogger<InvasionService>>();
         logger.Setup(l => l.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
-        var sut = new InvasionService(this._proxy.Object, logger.Object);
+        var sut = new InvasionService(this._proxy.Object, this._featureGate.Object, logger.Object);
         var ex = (Exception)Activator.CreateInstance(exceptionType, "proxy unavailable")!;
 
         this._proxy.Setup(p => p.CreateAsync("invasion", "u1", It.IsAny<JsonElement>()))
@@ -263,6 +268,33 @@ public class InvasionServiceTests
                 ex,
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Invasions))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Invasions));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.CreateAsync("u", new Invasion()));
+
+        Assert.Equal(DisableFeatureKeys.Invasions, ex.DisableKey);
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task BulkCreateAsyncThrowsFeatureDisabledExceptionWhenGated()
+    {
+        this._featureGate
+            .Setup(g => g.EnsureEnabledAsync(DisableFeatureKeys.Invasions))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Invasions));
+
+        await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.BulkCreateAsync("u", new List<Invasion> { new() }));
+
+        this._proxy.Verify(p => p.CreateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<JsonElement>()), Times.Never);
     }
 
     private static JsonElement CreateJsonArray(params object[] items)
