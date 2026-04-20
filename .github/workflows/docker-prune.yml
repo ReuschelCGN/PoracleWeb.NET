@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  ORG: pgan-dev
+  ORG: ${{ github.repository_owner }}
   PACKAGE: poracleweb.net
   REPO: PoracleWeb.NET
 
@@ -66,6 +66,6 @@ jobs:
         with:
           package-name: poracleweb.net
           package-type: container
-          owner: pgan-dev
+          owner: ${{ github.repository_owner }}
           min-versions-to-keep: 10
-          ignore-versions: '^(latest|beta|v\\d+\\.\\d+.*|pr-.*)$'
+          ignore-versions: '^(latest|beta|develop|v\\d+\\.\\d+.*|pr-.*)$'
