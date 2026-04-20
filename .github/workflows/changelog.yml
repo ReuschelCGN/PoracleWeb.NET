@@ -3,7 +3,7 @@ name: Update Changelog
 on:
   pull_request:
     types: [closed]
-    branches: [main]
+    branches: [develop]
 
 jobs:
   update-changelog:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: main
+          ref: develop
           fetch-depth: 0
 
       - name: Categorize PR
