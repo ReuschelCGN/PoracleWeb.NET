@@ -395,6 +395,28 @@ export class AdminSettingsComponent implements OnInit {
 
   readonly iconRepos = [
     {
+      name: 'Pokemon Home Style Halfshiny Sparkles (Home)',
+      base: 'https://raw.githubusercontent.com/ReuschelCGN/PkmnHomeMod/refs/heads/main/UICONS_Half_Shiny_Sparkle_128',
+      previewImages: [
+        { name: 'Pikachu', path: 'pokemon/25.png' },
+        { name: 'Charizard', path: 'pokemon/6.png' },
+        { name: 'Mewtwo', path: 'pokemon/150.png' },
+        { name: 'T5 Egg', path: 'raid/egg/5.png' },
+        { name: 'Mystic', path: 'gym/1.png' },
+      ],
+    },
+    {
+      name: 'Pokemon Shuffle Style Halfshiny Sparkles (Shuffle)',
+      base: 'https://raw.githubusercontent.com/ReuschelCGN/PkmnShuffleMod/refs/heads/main/UICONS_Half_Shiny_Sparkles_128',
+      previewImages: [
+        { name: 'Pikachu', path: 'pokemon/25.png' },
+        { name: 'Charizard', path: 'pokemon/6.png' },
+        { name: 'Mewtwo', path: 'pokemon/150.png' },
+        { name: 'T5 Egg', path: 'raid/egg/5.png' },
+        { name: 'Mystic', path: 'gym/1.png' },
+      ],
+    },
+    {
       name: 'Whitewillem (Ingame)',
       base: 'https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons',
       previewImages: [
@@ -419,28 +441,6 @@ export class AdminSettingsComponent implements OnInit {
     {
       name: 'Nileplumb (Shuffle)',
       base: 'https://raw.githubusercontent.com/nileplumb/PkmnShuffleMap/master/UICONS',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
-    {
-      name: 'Jms412 (Home)',
-      base: 'https://raw.githubusercontent.com/jms412/PkmnHomeIcons/master/UICONS',
-      previewImages: [
-        { name: 'Pikachu', path: 'pokemon/25.png' },
-        { name: 'Charizard', path: 'pokemon/6.png' },
-        { name: 'Mewtwo', path: 'pokemon/150.png' },
-        { name: 'T5 Egg', path: 'raid/egg/5.png' },
-        { name: 'Mystic', path: 'gym/1.png' },
-      ],
-    },
-    {
-      name: 'Jms412 (Pokedex)',
-      base: 'https://raw.githubusercontent.com/jms412/PkmnPokedexIcons/master/UICONS',
       previewImages: [
         { name: 'Pikachu', path: 'pokemon/25.png' },
         { name: 'Charizard', path: 'pokemon/6.png' },
