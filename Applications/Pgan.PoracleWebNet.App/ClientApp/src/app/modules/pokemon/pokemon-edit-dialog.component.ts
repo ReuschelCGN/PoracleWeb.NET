@@ -136,7 +136,7 @@ export class PokemonEditDialogComponent {
       maxCp: values.maxCp ?? 9000,
       maxDef: values.maxDef ?? 15,
       maxIv: values.maxIv ?? 100,
-      maxLevel: values.maxLevel ?? 55,
+      maxLevel: values.maxLevel ?? 50,
       maxSize: values.maxSize ?? 5,
       maxSta: values.maxSta ?? 15,
       maxWeight: values.maxWeight ?? 9000000,
