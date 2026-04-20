@@ -32,8 +32,8 @@ public sealed class PokemonTestPayloadBuilder(
         var baseStats = await masterDataService.GetBaseStatsAsync(pokemonId, form);
 
         // Filter bounds.
-        var minLevel = Math.Clamp(alarm.GetInt("min_level", 1), 1, 55);
-        var maxLevel = Math.Clamp(alarm.GetInt("max_level", 50), minLevel, 55);
+        var minLevel = Math.Clamp(alarm.GetInt("min_level", 1), 1, 50);
+        var maxLevel = Math.Clamp(alarm.GetInt("max_level", 50), minLevel, 50);
         var minIvPct = alarm.GetInt("min_iv", 0);
         var maxIvPct = alarm.GetInt("max_iv", 100);
         var atkFloor = Math.Clamp(alarm.GetInt("atk", 0), 0, 15);
