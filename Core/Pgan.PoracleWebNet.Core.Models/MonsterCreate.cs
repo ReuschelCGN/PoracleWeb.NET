@@ -40,14 +40,14 @@ public class MonsterCreate
     [Range(0, 10000)]
     public int MaxCp { get; set; } = 9000;
 
-    [Range(0, 55)]
+    [Range(0, 50)]
     public int MinLevel
     {
         get; set;
     }
 
-    [Range(0, 55)]
-    public int MaxLevel { get; set; } = 55;
+    [Range(0, 50)]
+    public int MaxLevel { get; set; } = 50;
 
     [Range(0, int.MaxValue)]
     public int MinWeight
