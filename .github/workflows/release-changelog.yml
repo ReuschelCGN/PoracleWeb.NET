@@ -45,6 +45,6 @@ jobs:
 
             Triggered by release [${{ github.event.release.tag_name }}](${{ github.event.release.html_url }}).
           branch: changelog/${{ github.event.release.tag_name }}
-          base: main
+          base: develop
           labels: docs,automated
           delete-branch: true
