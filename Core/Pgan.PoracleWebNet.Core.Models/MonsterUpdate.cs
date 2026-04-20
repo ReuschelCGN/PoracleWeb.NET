@@ -40,13 +40,13 @@ public class MonsterUpdate
         get; set;
     }
 
-    [Range(0, 55)]
+    [Range(0, 50)]
     public int? MinLevel
     {
         get; set;
     }
 
-    [Range(0, 55)]
+    [Range(0, 50)]
     public int? MaxLevel
     {
         get; set;
