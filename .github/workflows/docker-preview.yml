@@ -62,7 +62,7 @@ jobs:
           message: |
             ## Preview image ready
 
-            Pull this PR's build and run it locally — see [TESTING.md](../blob/main/TESTING.md) for the full recipe.
+            Pull this PR's build and run it locally — see [TESTING.md](../blob/develop/TESTING.md) for the full recipe.
 
             ```yaml
             # docker-compose.yml
