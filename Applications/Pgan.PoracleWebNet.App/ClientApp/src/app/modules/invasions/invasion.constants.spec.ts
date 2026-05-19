@@ -115,7 +115,7 @@ describe('invasion.constants', () => {
 
     it('returns GRUNT_TYPES key for typed grunts and leaders', () => {
       expect(getGruntDisplayKey('bug')).toBe('INVASIONS.GRUNT_TYPES.BUG');
-      expect(getGruntDisplayKey('metal')).toBe('INVASIONS.GRUNT_TYPES.METAL');
+      expect(getGruntDisplayKey('steel')).toBe('INVASIONS.GRUNT_TYPES.STEEL');
       expect(getGruntDisplayKey('mixed')).toBe('INVASIONS.GRUNT_TYPES.MIXED');
       expect(getGruntDisplayKey('giovanni')).toBe('INVASIONS.GRUNT_TYPES.GIOVANNI');
     });
@@ -138,7 +138,7 @@ describe('invasion.constants', () => {
         'grass',
         'ground',
         'ice',
-        'metal',
+        'steel',
         'normal',
         'poison',
         'psychic',
