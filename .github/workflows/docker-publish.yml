@@ -4,7 +4,7 @@ on:
   release:
     types: [published]
   push:
-    branches: [develop]
+    branches: [develop-gruntfix]
   workflow_dispatch:
 
 env:
