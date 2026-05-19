@@ -15,7 +15,7 @@ public class QuickPickDefaultsTests
     [
         "", "mixed", "cliff", "arlo", "sierra", "giovanni", "decoy",
         "bug", "dark", "dragon", "electric", "fairy", "fighting", "fire", "flying",
-        "ghost", "grass", "ground", "ice", "metal", "normal", "poison", "psychic", "rock", "water",
+        "ghost", "grass", "ground", "ice", "steel", "normal", "poison", "psychic", "rock", "water",
     ];
 
     private readonly QuickPickService _sut = BuildSut();
