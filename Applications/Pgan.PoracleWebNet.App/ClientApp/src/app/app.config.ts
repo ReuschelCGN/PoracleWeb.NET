@@ -16,7 +16,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     provideAnimationsAsync(),
     provideTranslateService({
-      fallbackLang: 'en',
+      defaultLanguage: 'en',
       loader: {
         provide: TranslateLoader,
         useClass: TranslateHttpLoader,
