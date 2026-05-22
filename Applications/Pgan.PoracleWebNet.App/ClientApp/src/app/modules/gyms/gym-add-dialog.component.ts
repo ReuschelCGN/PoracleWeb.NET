@@ -79,7 +79,7 @@ export class GymAddDialogComponent {
   ];
 
   getGymIcon(team: number): string {
-    if (team === 4) team: 0;
+    if (team === 4) team = 0;
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
   }
 
