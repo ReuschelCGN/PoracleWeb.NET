@@ -603,6 +603,7 @@
     "TEAM_MYSTIC": "Mystic",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinct",
+    "TEAM_ANY": "Any Team",
     "TEAM_UNKNOWN": "Team {{id}}"
   },
   "FORT_CHANGES": {
