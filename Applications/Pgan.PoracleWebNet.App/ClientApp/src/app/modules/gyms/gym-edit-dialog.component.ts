@@ -63,19 +63,22 @@ export class GymEditDialogComponent {
   saving = signal(false);
   selectedGymId = signal<string | null>(this.data.gymId);
   getGymIcon(): string {
+    if (team === '4') team = '0';
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${this.data.team}.png`;
   }
 
   getTeamName(team: number): string {
     switch (team) {
       case 0:
-        return 'Neutral';
+        return 'GYMS.TEAM_NEUTRAL';
       case 1:
-        return 'Mystic (Blue)';
+        return 'GYMS.TEAM_MYSTIC';
       case 2:
-        return 'Valor (Red)';
+        return 'GYMS.TEAM_VALOR';
       case 3:
-        return 'Instinct (Yellow)';
+        return 'GYMS.TEAM_INSTINCT';
+      case 4:
+        return 'GYMS.TEAM_ANY';
       default:
         return `Team ${team}`;
     }
