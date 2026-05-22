@@ -4,7 +4,7 @@ on:
   release:
     types: [published]
   push:
-    branches: [develop-gruntfix]
+    branches: [develop-i18n]
   workflow_dispatch:
 
 env:
@@ -41,8 +41,8 @@ jobs:
             type=raw,value=latest,enable=${{ github.event_name == 'release' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=develop-gruntfix,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop-gruntfix' }}
-            type=sha,prefix=develop-gruntfix-,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop-gruntfix' }}
+            type=raw,value=develop-i18n,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop-i18n' }}
+            type=sha,prefix=develop-i18n-,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/develop-i18n' }}
             type=sha,prefix=,enable=${{ github.event_name == 'release' }}
 
       - name: Build and push
