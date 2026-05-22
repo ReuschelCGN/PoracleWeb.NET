@@ -599,10 +599,11 @@
     "SNACK_FAILED_CREATE": "Alarm konnte nicht erstellt werden",
     "SNACK_FAILED_UPDATE": "Alarm konnte nicht aktualisiert werden",
     "SNACK_FAILED_DELETE": "Alarm konnte nicht gelöscht werden",
-    "TEAM_NEUTRAL": "Neutral",
-    "TEAM_MYSTIC": "Weisheit",
-    "TEAM_VALOR": "Wagemut",
-    "TEAM_INSTINCT": "Intuition",
+    "TEAM_NEUTRAL": "kein Team (Grau)",
+    "TEAM_MYSTIC": "Mystic (Blau)",
+    "TEAM_VALOR": "Valor (Rot)",
+    "TEAM_INSTINCT": "Instinct (Gelb)",
+    "TEAM_ANY": "beliebiges Team (alle)",
     "TEAM_UNKNOWN": "Team {{id}}"
   },
   "FORT_CHANGES": {
