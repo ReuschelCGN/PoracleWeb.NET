@@ -3,7 +3,7 @@
   <div class="item-header">
     <img [src]="getGymIcon()" class="gym-img" alt="" />
     <div>
-      <h3>{{ getTeamName(data.team) }}</h3>
+      <h3>{{ getTeamName(data.team) | translate }}</h3>
       <span class="item-subtitle">{{ 'GYMS.PAGE_TITLE' | translate }}</span>
     </div>
   </div>
