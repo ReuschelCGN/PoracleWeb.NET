@@ -603,6 +603,7 @@
     "TEAM_MYSTIC": "Sabiduría",
     "TEAM_VALOR": "Valor",
     "TEAM_INSTINCT": "Instinto",
+    "TEAM_ANY": "Cualquier equipo",
     "TEAM_UNKNOWN": "Equipo {{id}}"
   },
   "FORT_CHANGES": {
