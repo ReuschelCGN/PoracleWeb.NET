@@ -171,6 +171,8 @@ export class GymListComponent implements OnInit {
         return '#F44336';
       case 3:
         return '#FFC107';
+      case 4:
+        return '#9E9E9E';
       default:
         return '#9E9E9E';
     }
@@ -179,13 +181,15 @@ export class GymListComponent implements OnInit {
   getTeamName(team: number): string {
     switch (team) {
       case 0:
-        return 'Neutral';
+        return 'GYMS.TEAM_NEUTRAL';
       case 1:
-        return 'Mystic (Blue)';
+        return 'GYMS.TEAM_MYSTIC';
       case 2:
-        return 'Valor (Red)';
+        return 'GYMS.TEAM_VALOR';
       case 3:
-        return 'Instinct (Yellow)';
+        return 'GYMS.TEAM_INSTINCT';
+      case 4:
+        return 'GYMS.TEAM_ANY';
       default:
         return `Team ${team}`;
     }
