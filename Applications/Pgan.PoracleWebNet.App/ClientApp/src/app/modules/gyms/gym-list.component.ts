@@ -158,8 +158,8 @@ export class GymListComponent implements OnInit {
   }
 
   getGymIcon(team: number): string {
-    if (team === 4) team = 0;
-    return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
+    if (team === 4) return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/0.png`;
+    else return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${team}.png`;
   }
 
   getTeamColor(team: number): string {
