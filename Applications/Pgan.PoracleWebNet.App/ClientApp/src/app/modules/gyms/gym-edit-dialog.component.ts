@@ -63,7 +63,7 @@ export class GymEditDialogComponent {
   saving = signal(false);
   selectedGymId = signal<string | null>(this.data.gymId);
   getGymIcon(): string {
-    if (this.data.team === 4) this.data.team: 0;
+    if (this.data.team === 4) this.data.team = 0;
     return `https://raw.githubusercontent.com/whitewillem/PogoAssets/main/uicons/gym/${this.data.team}.png`;
   }
 
