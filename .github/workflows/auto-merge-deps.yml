@@ -1,0 +1,59 @@
+name: Dependabot auto-merge
+
+# Only triggers on pull_request_target. Listing `push:` here previously caused
+# the workflow to fire on push events instead of pull_request_target ones,
+# so Dependabot PRs never got auto-approved and every push recorded a failure
+# run. pr-labeler.yml uses pull_request_target alone and triggers correctly,
+# which was the side-by-side that confirmed the issue.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    steps:
+      # Sentinel step so the run records as "success" for non-Dependabot PRs.
+      # Without it, every step below is gated by `github.actor == 'dependabot[bot]'`
+      # and a non-Dependabot PR would produce a job with zero successful steps,
+      # which GitHub records as failure.
+      - name: Workflow ran
+        run: echo "Auto-merge workflow evaluated for actor=${{ github.actor }}"
+
+      - name: Fetch Dependabot metadata
+        id: meta
+        if: github.actor == 'dependabot[bot]'
+        uses: dependabot/fetch-metadata@v2
+
+      - name: Enable auto-merge for low-risk bumps
+        # Auto-merge criteria:
+        #  - any patch-level bump
+        #  - any grouped bundle (groups are curated; CI gates)
+        #  - GitHub Actions minor bumps
+        # Majors and runtime-dep minors wait for human review.
+        if: |
+          github.actor == 'dependabot[bot]' && (
+            steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+            steps.meta.outputs.dependency-group != '' ||
+            (steps.meta.outputs.package-ecosystem == 'github_actions' &&
+             steps.meta.outputs.update-type == 'version-update:semver-minor')
+          )
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve on behalf of repo
+        if: |
+          github.actor == 'dependabot[bot]' && (
+            steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+            steps.meta.outputs.dependency-group != ''
+          )
+        run: gh pr review --approve "$PR_URL" --body 'Auto-approved low-risk bump, gated on CI.'
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
