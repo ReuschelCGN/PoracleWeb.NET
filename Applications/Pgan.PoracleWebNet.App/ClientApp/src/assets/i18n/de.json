@@ -1163,7 +1163,7 @@
     "APPROVAL_PROMOTED_NAME_HINT": "Optional. Standardmäßig der aktuelle Anzeigename.",
     "APPROVAL_REJECT_REASON": "Ablehnungsgrund",
     "APPROVAL_REJECT_PLACEHOLDER": "Erkläre, warum dieser Geofence abgelehnt wird...",
-    "USERS_DESC_FULL": "Registrierte Discord-Benutzer verwalten. <strong>Gestoppt</strong> = Benutzer hat Alarme pausiert oder Ratenbegrenzung erreicht. <strong>Gesperrt</strong> = vom Admin blockiert.",
+    "USERS_DESC_FULL": "Registrierte Discord-Benutzer verwalten. Gestoppt = Benutzer hat Alarme pausiert oder Ratenbegrenzung erreicht. Gesperrt = vom Admin blockiert.",
     "COLUMN_DISABLED_SINCE": "Deaktiviert seit",
     "COLUMN_URL": "URL",
     "COLUMN_DELEGATES": "Delegierte",
