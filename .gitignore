@@ -33,8 +33,20 @@ avatar-cache.json
 *.http
 *.mjs
 screenshot-*.png
+# Playwright MCP server output + loose screenshots at the repo root
+# (tracked PNGs all live under ClientApp/public/assets, so this is root-only)
+.playwright-mcp/
+/*.png
 Applications/Pgan.PoracleWebNet.Api/cookies.txt
 beta-discord-messages.txt
 
 # ASP.NET DataProtection runtime keys — never commit
 Data/dataprotection-keys/
+# DATA_DIR fallback for standalone `dotnet run` (Program.cs uses ./data when DATA_DIR is unset)
+Applications/Pgan.PoracleWebNet.Api/data/
+
+# Built Angular bundle copied into the API host on publish — regenerated, never committed
+Applications/Pgan.PoracleWebNet.Api/wwwroot/
+
+# Local-only Docker test build (npm 11 pin); not part of the app build
+Dockerfile.local

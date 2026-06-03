@@ -35,6 +35,7 @@ public class MappingExtensionTests
             PvpRankingBest = 1,
             PvpRankingMinCp = 2500,
             PvpRankingLeague = 2500,
+            PvpRankingCap = 50,
             Form = 42,
             Size = 3,
             MaxSize = 5,
@@ -66,6 +67,7 @@ public class MappingExtensionTests
         Assert.Equal(1, model.PvpRankingBest);
         Assert.Equal(2500, model.PvpRankingMinCp);
         Assert.Equal(2500, model.PvpRankingLeague);
+        Assert.Equal(50, model.PvpRankingCap);
         Assert.Equal(42, model.Form);
         Assert.Equal(3, model.Size);
         Assert.Equal(5, model.MaxSize);
@@ -93,6 +95,7 @@ public class MappingExtensionTests
             AdminDisable = 0,
             CurrentProfileNo = 2,
             CommunityMembership = "groupA",
+            Notes = "My Server / Alerts",
         };
 
         var model = entity.ToModel();
@@ -109,6 +112,7 @@ public class MappingExtensionTests
         Assert.Equal(0, model.AdminDisable);
         Assert.Equal(2, model.CurrentProfileNo);
         Assert.Equal("groupA", model.CommunityMembership);
+        Assert.Equal("My Server / Alerts", model.Notes);
     }
 
     // ── ProfileEntity.ToModel ───────────────────────────────
@@ -552,6 +556,7 @@ public class MappingExtensionTests
             PvpRankingBest = 1,
             PvpRankingMinCp = 2500,
             PvpRankingLeague = 2500,
+            PvpRankingCap = 50,
             Form = 42,
             Size = 3,
             MaxSize = 5,
@@ -586,6 +591,7 @@ public class MappingExtensionTests
         Assert.Equal(1, existing.PvpRankingBest);
         Assert.Equal(2500, existing.PvpRankingMinCp);
         Assert.Equal(2500, existing.PvpRankingLeague);
+        Assert.Equal(50, existing.PvpRankingCap);
         Assert.Equal(42, existing.Form);
         Assert.Equal(3, existing.Size);
         Assert.Equal(5, existing.MaxSize);
@@ -637,6 +643,28 @@ public class MappingExtensionTests
         Assert.Equal(50, existing.MaxLevel);
         Assert.Equal(42, existing.Form);
         Assert.Equal(1, existing.Clean);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_OverwritesPvpRankingCap()
+    {
+        var existing = new Monster { PvpRankingCap = 0 };
+        var update = new MonsterUpdate { PvpRankingCap = 51 };
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(51, existing.PvpRankingCap);
+    }
+
+    [Fact]
+    public void MonsterUpdate_ApplyUpdate_NullPvpRankingCapPreservesExisting()
+    {
+        var existing = new Monster { PvpRankingCap = 50 };
+        var update = new MonsterUpdate();
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(50, existing.PvpRankingCap);
     }
 
     // ── RaidUpdate.ApplyUpdate — null-skip behavior ─────────
@@ -871,6 +899,44 @@ public class MappingExtensionTests
         Assert.Equal(2, existing.RewardType);
         Assert.Equal(1, existing.Clean);
         Assert.Equal(7, existing.Form);
+    }
+
+    // ── clean bitmask round-trip (#292) ─────────────────────
+
+    [Fact]
+    public void QuestCreate_ToQuest_PreservesMultiBitClean()
+    {
+        // clean is a PoracleNG bitmask (bit 1 = auto-delete, bit 2 = edit, bit 4 = summary).
+        // A bot-set clean=5 (auto-delete + summary) must survive the DTO->model mapping. (#292)
+        var create = new QuestCreate { Clean = 5 };
+
+        var model = create.ToQuest();
+
+        Assert.Equal(5, model.Clean);
+    }
+
+    [Fact]
+    public void QuestUpdate_ApplyUpdate_PreservesMultiBitClean()
+    {
+        // A non-null multi-bit clean must overwrite verbatim — no bit gets dropped. (#292)
+        var existing = new Quest { Clean = 0 };
+        var update = new QuestUpdate { Clean = 5 };
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(5, existing.Clean);
+    }
+
+    [Fact]
+    public void QuestUpdate_ApplyUpdate_NullCleanPreservesMultiBitExisting()
+    {
+        // Null clean keeps the existing multi-bit value untouched (null-skip merge). (#292)
+        var existing = new Quest { Clean = 5 };
+        var update = new QuestUpdate();
+
+        update.ApplyUpdate(existing);
+
+        Assert.Equal(5, existing.Clean);
     }
 
     // ── InvasionUpdate.ApplyUpdate — null-skip behavior ─────

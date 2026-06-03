@@ -25,7 +25,11 @@ public class RaidCreate
     [Range(0, 4)]
     public int Team { get; set; } = 4;
 
-    [Range(0, 10)]
+    // PoracleNG accepts any positive integer as a raid level, plus 9000 as the
+    // "any level" wildcard. The previous [Range(0, 10)] rejected the wildcard
+    // and any custom server-defined tiers (Elite at 7+, custom 8+) before they
+    // could reach PoracleNG. See #259.
+    [Range(0, int.MaxValue)]
     public int Level
     {
         get; set;
@@ -37,7 +41,8 @@ public class RaidCreate
         get; set;
     }
 
-    [Range(0, 1)]
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
+    [Range(0, 7)]
     public int Clean
     {
         get; set;
@@ -67,7 +72,7 @@ public class RaidCreate
         get; set;
     }
 
-    [Range(0, 1)]
+    [Range(0, 2)]
     public int RsvpChanges
     {
         get; set;

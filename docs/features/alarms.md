@@ -9,8 +9,8 @@ All alarm CRUD operations are proxied through the PoracleNG REST API. PoracleNG 
 | Type | Description |
 |---|---|
 | **Pokemon** | Filter by species, IV, CP, level, PVP rank, gender, size |
-| **Raids** | Filter by raid boss, tier, move, evolution, EX eligibility, specific gym, RSVP changes |
-| **Eggs** | Filter by egg tier, EX eligibility, specific gym, RSVP changes |
+| **Raids** | Filter by raid boss, level, move, evolution, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
+| **Eggs** | Filter by egg level, EX eligibility, specific gym, RSVP notification mode. See [Raid level selector](#raid-level-selector). |
 | **Quests** | Filter by reward type and Pokemon |
 | **Invasions** | Filter by grunt type and shadow Pokemon |
 | **Lures** | Filter by lure type |
@@ -136,9 +136,23 @@ When a user selects a specific size, both `size` and `max_size` are set to the s
 
 The default maximum level is **55** (not 40 or 50), matching Poracle's support for shadow/purified/best-buddy boosted levels.
 
+## Raid level selector
+
+Raid, egg, and raid-boss-level pickers share the `<app-level-selector>` chip component. The vocabulary follows the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator/blob/main/master-latest-poracle-v2.json) — the same source PoracleNG uses for in-DM notification text — so the names you see in the picker match what users receive in their alerts.
+
+**Raid picker.** Multi-select. Primary chip row shows the seven most common types: `1 Star`, `2 Star`, `3 Star`, `4 Star`, `Legendary` (level 5), `Mega` (level 6), `Mega Legendary` (level 7). A `Any` chip selects the wildcard sentinel (level 9000) that matches every raid level. A **More raid types…** overflow menu surfaces the other 12 canonical types: `Ultra Beast` (8), `Elite` (9), `Primal` (10), `1–5 Shadow` (11–15), `4–5 Super Mega` (16–17), `Coordinated 1–2` (18–19).
+
+**Egg picker.** Multi-select. Only the five Star tiers (1–5) are surfaced — Pokémon GO has no Mega/Shadow/Primal eggs.
+
+**Boss-level picker.** Single-select. Same primary/overflow layout as the raid picker, used in the "By Boss" tab when a specific Pokémon is selected but the user still wants to scope to certain raid levels.
+
+**`+ Add`.** All three pickers expose an inline numeric input for any positive integer not in the canonical list. Useful for forward compatibility — if Niantic introduces a new raid type (`raid_20`) before PoracleWeb.NET ships an update, you can already alarm on it. Typed values are **ephemeral** to the dialog session: close the dialog (or refresh the page) and the chip is gone. Saved alarms at custom levels re-seed the chip when you open the edit dialog.
+
+The canonical list is served by the API at `GET /api/masterdata/raid-levels` (cached server-side; baked-in fallback if the masterfile fetch fails). Card titles like "All Mega Legendary Raids" compose by combining the modifier ("Mega Legendary") with the localized "Raids" suffix from `RAIDS.ALL_LEVEL_RAIDS`, so card text reads naturally without the doubled word that an unaltered masterfile string would produce.
+
 ## Raid alarm filters
 
-Raid alarms support these fields beyond the basic tier/boss selection:
+Raid alarms support these fields beyond the basic level/boss selection:
 
 | Field | Default | Description |
 |---|---|---|
@@ -147,7 +161,7 @@ Raid alarms support these fields beyond the basic tier/boss selection:
 | `evolution` | `9000` (any) | Filter by evolution type (e.g., Mega, Primal) |
 | `exclusive` | `false` | EX/exclusive raid flag |
 | `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
-| `rsvpChanges` | `false` | Receive RSVP change notifications |
+| `rsvpChanges` | `0` (matches only) | RSVP notification mode: `0` matches only, `1` matches + RSVP updates, `2` RSVP updates only. Selectable as a three-option toggle group in the raid add/edit dialog; shown as an "RSVP" / "RSVP only" status badge on raid cards (beside the auto-delete tag) when non-default. Selecting mode `1` or `2` also sets PoracleNG's edit-in-place bit (`clean` bit 2) so RSVP count changes edit the existing alert rather than sending a new message. Mode `2` requires the upstream scanner to emit RSVP webhooks — selecting it in deployments without one will silence the alarm. |
 
 ## Egg alarm filters
 
@@ -158,7 +172,7 @@ Egg alarms support:
 | `team` | `4` (any team) | Gym team controlling the egg |
 | `exclusive` | `false` | EX/exclusive egg flag |
 | `gymId` | `null` (all gyms) | Track a specific gym by ID (set via gym picker) |
-| `rsvpChanges` | `false` | Receive RSVP change notifications |
+| `rsvpChanges` | `0` (matches only) | RSVP notification mode: `0` matches only, `1` matches + RSVP updates, `2` RSVP updates only. Selectable as a three-option toggle group in the egg add/edit dialog; shown as an "RSVP" / "RSVP only" status badge on egg cards (beside the auto-delete tag) when non-default. Selecting mode `1` or `2` also sets PoracleNG's edit-in-place bit (`clean` bit 2) so RSVP count changes edit the existing alert rather than sending a new message. Mode `2` requires the upstream scanner to emit RSVP webhooks — selecting it in deployments without one will silence the alarm. |
 
 ## Gym alarm filters
 
@@ -255,6 +269,30 @@ The **gym picker** is a shared component (`app-gym-picker`) that allows users to
 ## Invasion alarm filters
 
 Invasion alarms filter by grunt type. The `grunt_type` value is **automatically lowercased** on create because Poracle uses case-sensitive matching for grunt types.
+
+## Delivery & message modes
+
+Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** controlling how the notification is delivered. PoracleWeb surfaces the bits the bot actually acts on as per-alarm toggles in the add/edit dialogs (and shows them as status badges on the alarm cards):
+
+| Mode (`clean` bit) | Applies to | What it does |
+|---|---|---|
+| **Auto-delete** (bit 1) | all alarm types | Deletes the Discord notification after the event expires (e.g. a Pokemon despawns or a raid ends). Toggle per-alarm in the dialog, or in bulk from the **Cleaning** page. |
+| **Edit message in place** (bit 2) | Lures; Raids/Eggs (via RSVP mode) | Updates the existing Discord message when the event changes instead of sending a new one. For lures, enable the **"Edit message in place"** toggle in the lure dialog; for raids/eggs it is set automatically when you choose an RSVP mode (see the `rsvpChanges` rows above). |
+| **Daily summary** (bit 4) | Quests | Collects matching quests into a single summary message instead of one notification each. Enable the **"Daily summary"** toggle in the quest dialog. Requires a configured summary schedule on the bot. |
+
+The modes combine (a quest can be both auto-delete and daily-summary, for example). PoracleWeb **preserves any bits set elsewhere** — if you configured a delivery mode via the bot's `!command` interface that isn't surfaced in the web UI, editing the alarm in the browser will not wipe it.
+
+### RSVP updates (raids & eggs)
+
+Raid and egg alarms add a third delivery setting on top of auto-delete and edit-in-place: an **RSVP notification mode**, stored in the `rsvpChanges` field (see the `rsvpChanges` rows under the raid and egg filter tables above). Choose it from the three-option toggle group in the raid/egg add/edit dialog:
+
+- **Matches only** (`0`, the default) — standard raid/egg alerts only. You get one notification when a raid or egg matches, and nothing further.
+- **Matches + RSVP updates** (`1`) — the same initial match alert, plus a re-notification whenever the RSVP count changes (trainers signing up to attend).
+- **RSVP updates only** (`2`) — skips the initial match alert entirely and notifies you only when RSVP counts change.
+
+Picking mode `1` or `2` also turns on PoracleNG's edit-in-place behavior (`clean` bit 2), so RSVP count changes **edit the existing Discord alert in place** rather than sending a fresh message each time — your DMs stay to a single, updating notification per raid. When a non-default mode is set, the alarm card shows an **"RSVP"** (mode `1`) or **"RSVP only"** (mode `2`) status pill beside the auto-delete tag.
+
+> **Scanner caveat:** RSVP updates only arrive if the upstream scanner emits RSVP webhooks. In a deployment without one, mode `2` ("RSVP updates only") suppresses the initial match but never receives RSVP events — the alarm goes completely silent. Use mode `2` only if you know your scanner reports RSVPs.
 
 ## Default values
 

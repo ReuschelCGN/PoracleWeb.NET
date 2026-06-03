@@ -22,7 +22,9 @@ public class RaidUpdate
         get; set;
     }
 
-    [Range(0, 10)]
+    // See RaidCreate.Level — PoracleNG accepts arbitrary positive integers
+    // (plus 9000 as the wildcard).
+    [Range(0, int.MaxValue)]
     public int? Level
     {
         get; set;
@@ -34,7 +36,8 @@ public class RaidUpdate
         get; set;
     }
 
-    [Range(0, 1)]
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
+    [Range(0, 7)]
     public int? Clean
     {
         get; set;
@@ -70,7 +73,7 @@ public class RaidUpdate
         get; set;
     }
 
-    [Range(0, 1)]
+    [Range(0, 2)]
     public int? RsvpChanges
     {
         get; set;

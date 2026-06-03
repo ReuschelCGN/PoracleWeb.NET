@@ -19,13 +19,15 @@ public class EggCreate
     [Range(0, 4)]
     public int Team { get; set; } = 4;
 
-    [Range(0, 10)]
+    // PoracleNG accepts any positive integer as an egg level. See #259.
+    [Range(0, int.MaxValue)]
     public int Level
     {
         get; set;
     }
 
-    [Range(0, 1)]
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
+    [Range(0, 7)]
     public int Clean
     {
         get; set;
@@ -49,7 +51,7 @@ public class EggCreate
         get; set;
     }
 
-    [Range(0, 1)]
+    [Range(0, 2)]
     public int RsvpChanges
     {
         get; set;

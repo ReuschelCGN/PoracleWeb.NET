@@ -1,7 +1,6 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,14 +15,18 @@ import { TranslateModule } from '@ngx-translate/core';
 import { forkJoin } from 'rxjs';
 
 import { RaidCreate, EggCreate } from '../../core/models';
+import { ANY_LEVEL_VALUE } from '../../core/models/raid-level.models';
 import { AuthService } from '../../core/services/auth.service';
 import { EggService } from '../../core/services/egg.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
+import { LevelSelectorComponent } from '../../shared/components/level-selector/level-selector.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
+import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { AUTO_DELETE, EDIT } from '../../shared/utils/clean-flags';
 
 @Component({
   imports: [
@@ -36,7 +39,6 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     MatSlideToggleModule,
     MatIconModule,
     MatTabsModule,
-    MatCheckboxModule,
     MatRadioModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
@@ -45,6 +47,8 @@ import { TemplateSelectorComponent } from '../../shared/components/template-sele
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    LevelSelectorComponent,
+    RsvpToggleComponent,
   ],
   selector: 'app-raid-add-dialog',
   standalone: true,
@@ -57,28 +61,29 @@ export class RaidAddDialogComponent {
   private readonly i18n = inject(I18nService);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
-  bossForm = this.fb.group({
-    level: [0],
-  });
+
+  /** Single-select Boss-tab level; defaults to PoracleNG's "any" sentinel (9000). */
+  bossLevel = signal<number>(ANY_LEVEL_VALUE);
+  /** Stable array reference for the level selector input — prevents per-tick re-binding. */
+  bossLevelArray = computed(() => [this.bossLevel()]);
 
   commonForm = this.fb.group({
     clean: [false],
     distanceKm: [1],
     distanceMode: ['areas' as 'areas' | 'distance'],
     ping: [''],
+    rsvpChanges: [0],
     team: [4],
     template: [''],
   });
 
   readonly dialogRef = inject(MatDialogRef<RaidAddDialogComponent>);
-
   readonly isWebhook = inject(AuthService).isImpersonating();
-  levels = [1, 2, 3, 4, 5, 6];
   saving = signal(false);
   selectedEggLevels = signal<number[]>([]);
   selectedGymId = signal<string | null>(null);
-  selectedPokemonIds = signal<number[]>([]);
 
+  selectedPokemonIds = signal<number[]>([]);
   selectedRaidLevels = signal<number[]>([]);
 
   tabIndex = 0;
@@ -88,6 +93,11 @@ export class RaidAddDialogComponent {
       return this.selectedRaidLevels().length > 0 || this.selectedEggLevels().length > 0;
     }
     return this.selectedPokemonIds().length > 0;
+  }
+
+  /** Boss tab is single-select; the selector emits an array of length 0 or 1. */
+  onBossLevelChange(values: number[]): void {
+    this.bossLevel.set(values[0] ?? ANY_LEVEL_VALUE);
   }
 
   onDistanceModeChange(): void {
@@ -109,6 +119,10 @@ export class RaidAddDialogComponent {
     this.saving.set(true);
     const common = this.commonForm.getRawValue();
     const distanceMeters = common.distanceMode === 'areas' ? 0 : Math.round((common.distanceKm ?? 1) * 1000);
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
+    // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
+    // New alarms have no prior bits, so there is nothing to preserve here.
+    const clean = (common.clean ? AUTO_DELETE : 0) | ((common.rsvpChanges ?? 0) >= 1 ? EDIT : 0);
 
     const creates: ReturnType<typeof this.raidService.create | typeof this.eggService.create>[] = [];
 
@@ -116,7 +130,7 @@ export class RaidAddDialogComponent {
       // By Level
       for (const level of this.selectedRaidLevels()) {
         const raid: RaidCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           evolution: 9000,
           exclusive: 0,
@@ -126,7 +140,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId: 9000,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -134,13 +148,13 @@ export class RaidAddDialogComponent {
       }
       for (const level of this.selectedEggLevels()) {
         const egg: EggCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           exclusive: 0,
           gymId: this.selectedGymId() || null,
           level,
           ping: common.ping || null,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -148,10 +162,10 @@ export class RaidAddDialogComponent {
       }
     } else {
       // By Boss
-      const bossLevel = this.bossForm.controls.level.value ?? 0;
+      const bossLevel = this.bossLevel();
       for (const pokemonId of this.selectedPokemonIds()) {
         const raid: RaidCreate = {
-          clean: common.clean ? 1 : 0,
+          clean,
           distance: distanceMeters,
           evolution: 9000,
           exclusive: 0,
@@ -161,7 +175,7 @@ export class RaidAddDialogComponent {
           move: 9000,
           ping: common.ping || null,
           pokemonId,
-          rsvpChanges: 0,
+          rsvpChanges: common.rsvpChanges ?? 0,
           team: common.team ?? 4,
           template: common.template || null,
         };
@@ -181,13 +195,5 @@ export class RaidAddDialogComponent {
         this.dialogRef.close(true);
       },
     });
-  }
-
-  toggleEggLevel(level: number): void {
-    this.selectedEggLevels.update(levels => (levels.includes(level) ? levels.filter(l => l !== level) : [...levels, level]));
-  }
-
-  toggleRaidLevel(level: number): void {
-    this.selectedRaidLevels.update(levels => (levels.includes(level) ? levels.filter(l => l !== level) : [...levels, level]));
   }
 }

@@ -106,6 +106,12 @@ public class MonsterCreate
         get; set;
     }
 
+    [Range(0, 55)]
+    public int PvpRankingCap
+    {
+        get; set;
+    }
+
     [Range(0, int.MaxValue)]
     public int Form
     {
@@ -124,7 +130,8 @@ public class MonsterCreate
         get; set;
     }
 
-    [Range(0, 1)]
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
+    [Range(0, 7)]
     public int Clean
     {
         get; set;

@@ -20,7 +20,10 @@ import { IconService } from '../../core/services/icon.service';
 import { RaidService } from '../../core/services/raid.service';
 import { DeliveryPreviewComponent } from '../../shared/components/delivery-preview/delivery-preview.component';
 import { GymPickerComponent } from '../../shared/components/gym-picker/gym-picker.component';
+import { RsvpToggleComponent } from '../../shared/components/rsvp-toggle/rsvp-toggle.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
+import { LevelLabelPipe } from '../../shared/pipes/level-label.pipe';
+import { AUTO_DELETE, EDIT, isAutoDelete } from '../../shared/utils/clean-flags';
 
 export interface RaidEditDialogData {
   item: Raid | Egg;
@@ -28,6 +31,7 @@ export interface RaidEditDialogData {
 }
 
 @Component({
+  providers: [LevelLabelPipe],
   imports: [
     ReactiveFormsModule,
     MatDialogModule,
@@ -44,6 +48,8 @@ export interface RaidEditDialogData {
     TemplateSelectorComponent,
     DeliveryPreviewComponent,
     GymPickerComponent,
+    RsvpToggleComponent,
+    LevelLabelPipe,
   ],
   selector: 'app-raid-edit-dialog',
   standalone: true,
@@ -55,15 +61,17 @@ export class RaidEditDialogComponent {
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
   private readonly iconService = inject(IconService);
+  private readonly levelLabelPipe = inject(LevelLabelPipe);
   private readonly raidService = inject(RaidService);
   private readonly snackBar = inject(MatSnackBar);
   readonly data = inject<RaidEditDialogData>(MAT_DIALOG_DATA);
   readonly dialogRef = inject(MatDialogRef<RaidEditDialogComponent>);
   form = this.fb.group({
-    clean: [this.data.item.clean === 1],
+    clean: [isAutoDelete(this.data.item.clean)],
     distanceKm: [this.data.item.distance > 0 ? this.data.item.distance / 1000 : 1],
     distanceMode: [this.data.item.distance === 0 ? 'areas' : ('distance' as 'areas' | 'distance')],
     ping: [this.data.item.ping ?? ''],
+    rsvpChanges: [this.data.item.rsvpChanges],
     team: [this.data.item.team],
     template: [this.data.item.template ?? ''],
   });
@@ -86,13 +94,13 @@ export class RaidEditDialogComponent {
 
   getTitle(): string {
     if (this.data.type === 'egg') {
-      return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + this.data.item.level + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
+      return this.levelLabelPipe.transform(this.data.item.level) + ' ' + this.i18n.instant('RAIDS.EGG_SUFFIX');
     }
     const raid = this.data.item as Raid;
     if (raid.pokemonId && raid.pokemonId !== 9000) {
       return this.i18n.instant('RAIDS.RAID_BOSS_NUM', { id: raid.pokemonId });
     }
-    return this.i18n.instant('RAIDS.LEVEL_PREFIX') + ' ' + raid.level + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
+    return this.levelLabelPipe.transform(raid.level) + ' ' + this.i18n.instant('RAIDS.RAID_SUFFIX');
   }
 
   onDistanceModeChange(): void {
@@ -113,11 +121,16 @@ export class RaidEditDialogComponent {
     this.saving.set(true);
     const values = this.form.getRawValue();
     const distanceMeters = values.distanceMode === 'areas' ? 0 : Math.round((values.distanceKm ?? 1) * 1000);
+    // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
+    // RSVP modes (1/2) need the edit bit so count changes edit the alert instead of re-sending.
+    // Preserve any other bits (e.g. bot-set summary) the web UI does not surface.
+    const clean =
+      (values.clean ? AUTO_DELETE : 0) | ((values.rsvpChanges ?? 0) >= 1 ? EDIT : 0) | (this.data.item.clean & ~(AUTO_DELETE | EDIT));
 
     if (this.data.type === 'raid') {
       const raid = this.data.item as Raid;
       const update: RaidUpdate = {
-        clean: values.clean ? 1 : 0,
+        clean,
         distance: distanceMeters,
         evolution: raid.evolution,
         exclusive: raid.exclusive,
@@ -127,7 +140,7 @@ export class RaidEditDialogComponent {
         move: raid.move,
         ping: values.ping || null,
         pokemonId: raid.pokemonId,
-        rsvpChanges: raid.rsvpChanges,
+        rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
         template: values.template || null,
       };
@@ -144,13 +157,13 @@ export class RaidEditDialogComponent {
     } else {
       const egg = this.data.item as Egg;
       const update: EggUpdate = {
-        clean: values.clean ? 1 : 0,
+        clean,
         distance: distanceMeters,
         exclusive: egg.exclusive,
         gymId: this.selectedGymId() || null,
         level: egg.level,
         ping: values.ping || null,
-        rsvpChanges: egg.rsvpChanges,
+        rsvpChanges: values.rsvpChanges ?? 0,
         team: values.team ?? 4,
         template: values.template || null,
       };
